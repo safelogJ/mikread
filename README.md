@@ -1,9 +1,8 @@
 # Mikread
 
+[![Google Play](https://img.shields.io/badge/Google_Play-000000?style=for-the-badge&logo=google-play&logoColor=white)](https://play.google.com/store/apps/details?id=com.safelogj.mikread)
+[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/playlist?list=PL5Ch75WcmOXTx-dNMVtK-H6dT8Lc382nx)
 
-https://youtu.be/Fq3206MZAQY
-
-https://www.youtube.com/watch?v=jDvWbBmJsrQ
 
 ## What the app does
 
