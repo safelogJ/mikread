@@ -1,0 +1,1 @@
+An app for reading SMS messages from MikroTik routers via the RouterOS API or email. Supports 7-bit and UCS2 decoding. RouterOS version 7.15 or higher.
