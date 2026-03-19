@@ -1,0 +1,51 @@
+# Android Studio & IntelliJ
+.idea/
+*.iml
+*.iws
+/out/
+
+# Build files
+/build/
+*/build/
+gen/
+bin/
+
+# Local and generated configurations
+local.properties
+*.log
+*.swp
+*~
+.externalNativeBuild
+.navigation/
+
+# Generated files
+*.apk
+*.aab
+*.dex
+*.class
+captures/
+
+# NDK and native builds
+.cxx
+obj/
+
+# Keystore files
+*.jks
+*.keystore
+
+# Eclipse legacy files
+.classpath
+.project
+.settings/
+.mtj.tmp/
+
+# Logs and crash reports
+hs_err_pid*
+
+# Plugin-specific files
+crashlytics.properties
+fabric.properties
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar

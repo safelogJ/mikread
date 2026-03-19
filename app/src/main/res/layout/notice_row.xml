@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/noticeText"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/winbox_btn_down"
+    android:clickable="true"
+    android:contentDescription="@string/notice_row"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:linksClickable="true"
+    android:paddingHorizontal="8dp"
+    android:textColor="@color/winbox_text_title_color"
+    android:textColorLink="@color/winbox_blue"
+    android:textSize="16sp" />

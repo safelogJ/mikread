@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/smsText"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:textDirection="anyRtl"
+    android:gravity="start|center_vertical"
+    android:autoLink="web"
+    android:textIsSelectable="true"
+    android:background="@drawable/sms_field_bg"
+    android:clickable="true"
+    android:focusable="true"
+    android:linksClickable="true"
+    android:contentDescription="@string/sms_row"
+    android:paddingHorizontal="8dp"
+    android:textColor="@color/winbox_text_title_color"
+    android:textColorLink="@color/winbox_blue"
+    android:textSize="18sp" />
+
+    <!--    android:gravity="center_vertical"-->

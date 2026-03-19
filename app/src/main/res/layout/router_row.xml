@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/LinearRow"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent">
+
+    <!-- Колонка 1: Host/IP -->
+    <HorizontalScrollView
+        android:id="@+id/rowHostScroll"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="@drawable/router_field_bg"
+        android:fillViewport="true"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:scrollbars="none">
+
+        <TextView
+            android:id="@+id/rowTextHost"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp"
+            android:textColor="@color/winbox_text_title_color"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </HorizontalScrollView>
+
+    <!-- Колонка 2: Login -->
+    <HorizontalScrollView
+        android:id="@+id/rowLoginScroll"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="@drawable/router_field_bg"
+        android:fillViewport="true"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:scrollbars="none">
+
+        <TextView
+            android:id="@+id/rowTextLogin"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp"
+            android:textColor="@color/winbox_text_title_color"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </HorizontalScrollView>
+
+    <!-- Колонка 3: Comment / Description -->
+    <HorizontalScrollView
+        android:id="@+id/rowNoteScroll"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="@drawable/router_field_bg"
+        android:fillViewport="true"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:scrollbars="none">
+
+        <TextView
+            android:id="@+id/rowTextNote"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp"
+            android:textColor="@color/winbox_text_title_color"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </HorizontalScrollView>
+
+</LinearLayout>

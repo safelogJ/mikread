@@ -1,0 +1,329 @@
+package com.safelogj.mikread;
+
+import android.app.Activity;
+import android.os.SystemClock;
+import android.util.Log;
+
+import com.safelogj.mikread.sms.MotherSms;
+import com.safelogj.mikread.sms.MotherSmsFactory;
+import com.safelogj.mikread.sms.Sms;
+
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+
+import me.legrange.mikrotik.ApiConnection;
+import me.legrange.mikrotik.MikrotikApiException;
+
+public class MikrotikRouter {
+    public static final int SMS_REMOVED_NO_PERM = 100;
+    public static final int SMS_REMOVED_INTERRUPT = 101;
+    public static final int LTE_NOT_ACTIVE = 102;
+    public static final int SMS_REMOVED_NO_SUCH_ITEM = 103;
+    public static final int COMMAND_TIMEOUT = 5_000;
+    public static final int SLEEP_TIMEOUT = 1100;
+    private static final String READ_SMS_COMMAND_DETAIL = "/tool/sms/inbox/print detail";
+    private static final String REMOVE_ALL_SMS_COMMAND_PATTERN = "/tool/sms/inbox/remove numbers=%s";
+    private static final String ROUTER_MODEL_PRINT = "/system/routerboard/print";
+    private static final String ERROR_NO_PERMISSIONS = "not enough permissions";
+    private static final String ERROR_LTE_NOT_ACTIVE = "LTE not active";
+    private static final String ERROR_NO_SUCH_ITEM = "no such item";
+    private static final String ERROR_DELETED_INTERRUPTED = "error: deletion interrupted";
+    private final AppController appController;
+    private volatile String errorText = AppController.EMPTY_STRING;
+    private volatile boolean isConnecting;
+    private volatile List<MotherSms> motherSmsList = new ArrayList<>();
+    private List<Sms> decodedPartSmsList = new ArrayList<>();
+    private String host = AppController.EMPTY_STRING;
+    private String user = AppController.EMPTY_STRING;
+    private String pass = AppController.EMPTY_STRING;
+    private String note = AppController.EMPTY_STRING;
+    private String model = AppController.EMPTY_STRING;
+    private long startTime;
+    private int delResultCode;
+
+
+    public static  MikrotikRouter buildLocalhost(AppController appController, String host) {
+        MikrotikRouter localRouter = new MikrotikRouter(appController);
+        localRouter.setHost(host);
+        localRouter.setUser(host);
+        localRouter.setPass(host);
+        localRouter.setNote(host);
+        return localRouter;
+    }
+
+    public MikrotikRouter(AppController appController) {
+        this.appController = appController;
+    }
+
+    public String getUser() {
+        return user;
+    }
+
+    public String getPass() {
+        return pass;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public List<MotherSms> getMotherSmsList() {
+        return motherSmsList;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public void setUser(String user) {
+        this.user = user;
+    }
+
+    public void setPass(String pass) {
+        this.pass = pass;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public boolean isValidRouterToConnect() {
+        return !host.isEmpty() && !user.isEmpty() && !pass.isEmpty();
+    }
+
+    public boolean isConnecting() {
+        return isConnecting;
+    }
+
+    public String getErrorText() {
+        return errorText;
+    }
+
+    public void connect() {
+        isConnecting = true;
+        sendInfoMessageToActivity(appController.getString(R.string.connecting));
+        startTime = SystemClock.elapsedRealtime();
+        model = AppController.EMPTY_STRING;
+        try (ApiConnection con = ApiConnection.connect(host)) {
+            con.setTimeout(COMMAND_TIMEOUT);
+            con.login(user, pass);
+            Log.d(AppController.LOG_TAG, "Перед читкой модели = ");
+            readRouterModel(con);
+            Log.d(AppController.LOG_TAG, "Перед обновленем смсок = ");
+            loadInboxSmsAndBuildMothers(con);
+            Log.d(AppController.LOG_TAG, "Размер списка смс SMS: id = " + decodedPartSmsList.size());
+            if (!motherSmsList.isEmpty()) {
+                sendInfoMessageToActivity(AppController.EMPTY_STRING);
+                startSmsActivity();
+            } else {
+                sendInfoMessageToActivity(appController.getString(R.string.inbox_empty));
+            }
+
+        } catch (MikrotikApiException e) {
+            Log.d(AppController.LOG_TAG, "Ошибка при коннекте = " + e.getMessage());
+            if (!model.isEmpty()) {
+                sendInfoMessageToActivity(appController.getString(R.string.inbox_empty));
+            } else {
+                errorCatch(e);
+            }
+        }
+        isConnecting = false;
+    }
+
+    public void removeMotherSmsByDate(MotherSms motherSms) {
+        isConnecting = true;
+        startTime = SystemClock.elapsedRealtime();
+        sendInfoMessageToActivity(appController.getString(R.string.removal));
+        model = AppController.EMPTY_STRING;
+        try (ApiConnection con = ApiConnection.connect(host)) {
+            con.setTimeout(COMMAND_TIMEOUT);
+            Log.d(AppController.LOG_TAG, "Перед логином метод = ");
+            con.login(user, pass);
+            Log.d(AppController.LOG_TAG, "Перед удалением метод = ");
+            removePartsSms(motherSms, con);
+            Log.d(AppController.LOG_TAG, "Перед читкой модели = ");
+            readRouterModel(con);
+            Log.d(AppController.LOG_TAG, "Перед обновлением смсок = ");
+            loadInboxSmsAndBuildMothers(con);
+            sendInfoMessageToActivity(getFinalMessageToActivity(delResultCode));
+            Log.d(AppController.LOG_TAG, "Конец удачнного удаления всех смс, отправлена команда обновиться таблице смс");
+        } catch (MikrotikApiException e) {
+            Log.d(AppController.LOG_TAG, "Конец удаления всех смс, НЕУДАЧА");
+            if (model.isEmpty()) {
+                if (!motherSmsList.isEmpty()) {
+                    errorCatch(e);
+                } else {
+                    sendInfoMessageToActivity(appController.getString(R.string.inbox_empty));
+                }
+
+            } else {
+                sendInfoMessageToActivity(AppController.EMPTY_STRING);
+            }
+        }
+        sendRedrawSmsCommand();
+        isConnecting = false;
+    }
+
+    private void errorCatch(MikrotikApiException e) {
+        String msg = e.getMessage();
+        if (msg != null) {
+            Log.d(AppController.LOG_TAG, msg);
+            int durationMs = (int) (SystemClock.elapsedRealtime() - startTime);
+            msg = msg.replace("after 60000ms", "after " + durationMs + "ms");
+        }
+        sendInfoMessageToActivity(msg);
+    }
+
+    private void removePartsSms(MotherSms motherSms, ApiConnection con) {
+        delResultCode = 0;
+        String indices = getIndices(sendCommand(READ_SMS_COMMAND_DETAIL, con), motherSms);
+        if (!indices.isEmpty()) {
+            sendCommand(String.format(Locale.ROOT, REMOVE_ALL_SMS_COMMAND_PATTERN, indices), con);
+        } else {
+            motherSmsList.remove(motherSms);
+        }
+    }
+
+    private List<Map<String, String>> sendCommand(String command, ApiConnection con) {
+        List<Map<String, String>> res = new ArrayList<>();
+        try {
+            res = con.execute(command);
+            Log.d(AppController.LOG_TAG, "В цикле выполнена команда" + command);
+
+        } catch (MikrotikApiException e) {
+            Log.d(AppController.LOG_TAG, " Не выполнена команда в цикле = " + command + "\n " + e.getMessage());
+            String msg = e.getMessage();
+            if (msg != null) {
+                if (msg.startsWith(ERROR_NO_PERMISSIONS)) {
+                    delResultCode = SMS_REMOVED_NO_PERM;
+                }
+                if (msg.contains(ERROR_LTE_NOT_ACTIVE)) {
+                    delResultCode = LTE_NOT_ACTIVE;
+                }
+                if (msg.contains(ERROR_NO_SUCH_ITEM)) {
+                    delResultCode = SMS_REMOVED_NO_SUCH_ITEM;
+                }
+            }
+        }
+        makePauseBetweenCommand();
+        return res;
+    }
+
+    private void makePauseBetweenCommand() {
+        try {
+            Log.d(AppController.LOG_TAG, "Сон между командами = " + SLEEP_TIMEOUT + "ms");
+            TimeUnit.MILLISECONDS.sleep(SLEEP_TIMEOUT);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            Log.d(AppController.LOG_TAG, "Прерван сон между командами интераптед = " + SLEEP_TIMEOUT + "ms");
+            sendInfoMessageToActivity(appController.getString(R.string.sms_remove_error));
+            delResultCode = SMS_REMOVED_INTERRUPT;
+        }
+    }
+
+    private void sendRedrawSmsCommand() {
+        WeakReference<Activity> activityWeakReference = appController.getCurrentActivityRef();
+        if (activityWeakReference != null) {
+            Activity activity = activityWeakReference.get();
+            if (activity instanceof SmsActivity smsActivity) {
+                smsActivity.reDrawSmsList();
+            }
+        }
+    }
+
+
+    private void readRouterModel(ApiConnection con) throws MikrotikApiException {
+        List<Map<String, String>> res = con.execute(ROUTER_MODEL_PRINT);
+        if (!res.isEmpty()) {
+            model = res.get(0).get("model");
+            Log.d(AppController.LOG_TAG, "Модель роутера = " + model);
+        }
+    }
+
+    private void loadInboxSmsAndBuildMothers(ApiConnection con) throws MikrotikApiException {
+        decodedPartSmsList = new ArrayList<>();
+        motherSmsList = new ArrayList<>();
+        List<Map<String, String>> res = con.execute(READ_SMS_COMMAND_DETAIL);
+        if (res != null && !res.isEmpty()) {
+            for (Map<String, String> sms : res) {
+                Sms newSms = new Sms(sms.get(Sms.PHONE_KEY), sms.get(Sms.TIMESTAMP_KEY), sms.get(Sms.MESSAGE_KEY),
+                        sms.get(Sms.PDU_KEY), sms.get(Sms.SOURCE_KEY), sms.get(Sms.TYPE_KEY));
+                Log.d(AppController.LOG_TAG, "ID =  " + sms.get(".id"));
+                newSms.decodePduToText();
+                if (newSms.isValidSms()) {
+                    decodedPartSmsList.add(newSms);
+                }
+            }
+        } else {
+            Log.d(AppController.LOG_TAG, "res =  " + (res == null));
+        }
+        MotherSmsFactory.fillMotherSmsList(decodedPartSmsList, motherSmsList);
+    }
+
+    private void sendInfoMessageToActivity(String errorString) {
+        errorText = errorString;
+        WeakReference<Activity> activityWeakReference = appController.getCurrentActivityRef();
+        if (activityWeakReference != null) {
+            Activity activity = activityWeakReference.get();
+            if (activity instanceof MainActivity mainActivity) {
+                mainActivity.drawError(errorString);
+            } else if (activity instanceof SmsActivity smsActivity) {
+                smsActivity.drawError(errorString);
+            }
+        }
+    }
+
+
+    private void startSmsActivity() {
+        WeakReference<Activity> activityWeakReference = appController.getCurrentActivityRef();
+        if (activityWeakReference != null) {
+            Activity activity = activityWeakReference.get();
+            if (activity instanceof MainActivity mainActivity) {
+                mainActivity.startSmsActivity();
+            }
+        }
+    }
+
+    private String getFinalMessageToActivity(int error) {
+        return switch (error) {
+            case SMS_REMOVED_NO_PERM -> ERROR_NO_PERMISSIONS;
+            case SMS_REMOVED_INTERRUPT -> ERROR_DELETED_INTERRUPTED;
+            case LTE_NOT_ACTIVE -> ERROR_LTE_NOT_ACTIVE;
+            case SMS_REMOVED_NO_SUCH_ITEM -> ERROR_NO_SUCH_ITEM;
+            default -> AppController.EMPTY_STRING;
+        };
+    }
+
+    private String getIndices(List<Map<String, String>> res, MotherSms motherSms) {
+        int id = 0;
+        StringBuilder indices = new StringBuilder(AppController.EMPTY_STRING);
+        for (Map<String, String> smsFind : res) {
+            if (MotherSmsFactory.isSameTimestamp(smsFind.get(Sms.TIMESTAMP_KEY), motherSms.getGroupTimestamp())
+                    && motherSms.getSource().equals(smsFind.get(Sms.SOURCE_KEY))
+                    && motherSms.getPhone().equals(smsFind.get(Sms.PHONE_KEY))
+                    && motherSms.isMessageContains(smsFind.get(Sms.MESSAGE_KEY))) {
+                if (indices.length() != 0) {
+                    indices.append(",");
+                }
+                indices.append(id);
+            }
+            id++;
+        }
+        Log.d(AppController.LOG_TAG, "Собраны индексы на удаление = " + indices);
+        return indices.toString();
+    }
+
+}

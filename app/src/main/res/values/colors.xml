@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="main_background">#FFF0F0F0</color>
+    <color name="winbox_background">#FFF2F2F2</color>
+    <color name="winbox_field_bg">#FFFFFF</color>
+    <color name="winbox_text_main">#1E1E1E</color>
+    <color name="winbox_text_hint">#888888</color>
+    <color name="winbox_text_label">#6A6A6A</color>
+    <color name="winbox_text_title_color">#434242</color>
+    <color name="winbox_accent_blue">#0078D7</color>
+    <color name="winbox_blue">#4C50D0</color>
+    <color name="table_row_blue">#9BC1E8</color>
+    <color name="winbox_border">#FF9E9E9E</color>
+    <color name="winbox_border_red">#FF1E1E</color>
+    <color name="router_field_border">#FFDCDCDC</color>
+    <color name="winbox_btn_border_up">#757474</color>
+    <color name="winbox_btn_border_down">#6D6D6D</color>
+<!--    <color name="winbox_btn_down">#DCDCDC</color>-->
+    <color name="winbox_btn_down">#E0E0E0</color>
+</resources>

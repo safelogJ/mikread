@@ -1,0 +1,37 @@
+<resources>
+    <string name="app_name">Mikread</string>
+    <string name="connect_to">Connect To:</string>
+    <string name="login">Login:</string>
+    <string name="default_ip">192.168.88.1</string>
+    <string name="default_login">admin</string>
+    <string name="password">Password:</string>
+    <string name="default_password">********</string>
+    <string name="add_set_btn">Add/Set</string>
+    <string name="connect_btn">Connect</string>
+    <string name="connecting">connecting…</string>
+    <string name="removal">removing…</string>
+    <string name="removal_step">removing… step</string>
+    <string name="original_btn">Original</string>
+    <string name="decoded_btn">Decoded</string>
+    <string name="del_btn">Del</string>
+    <string name="open_btn">Open</string>
+    <string name="address_field">Address</string>
+    <string name="notice_row">Notice</string>
+    <string name="user_field">User</string>
+    <string name="note_field">Note</string>
+    <string name="note_field2">Note:</string>
+    <string name="routers_table">Routers table</string>
+    <string name="sms_table">Sms table</string>
+    <string name="sms_row">Sms Row</string>
+    <string name="inbox_empty">no readable sms found</string>
+    <string name="sms_remove_error">failed to remove sms</string>
+    <string name="file_remove_error">failed to remove file</string>
+    <string name="notice"><![CDATA[<br><br><b>
+For information on deleting messages and email notifications about new sms, see <a href="https://github.com/safelogJ/mikread/blob/main/README.md"><b> Github</b> </a><br><br>
+<b>You can leave a review on <a href="https://www.youtube.com/watch?v=jDvWbBmJsrQ&list=PL5Ch75WcmOXTx-dNMVtK-H6dT8Lc382nx&index=1"> YouTube </a></b> <br><br>
+    <b>This application includes a third-party library:</b><br>
+<b>mikrotik-java <a href="https://github.com/GideonLeGrange/mikrotik-java">https://github.com/GideonLeGrange/mikrotik-java</a></b><br>
+   Licensed under the Apache License, Version 2.0.<br>
+   <b>Author: Gideon le Grange</b><br><br>
+]]></string>
+</resources>
