@@ -420,7 +420,7 @@ public class AppController extends Application {
 
         } catch (
                 Exception e) { // Ловим Exception, т.к. Keystore/Cipher может бросить разные исключения
-            Log.d(LOG_TAG, "Error reading or decrypting full JSON data: ", e);
+            Log.d(LOG_TAG, "Error reading or decrypting full JSON data:  ", e);
         }
     }
 
