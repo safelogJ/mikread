@@ -1,1 +1,1 @@
-Mikread
+Mikread: UCS2 SMS for MikroTik

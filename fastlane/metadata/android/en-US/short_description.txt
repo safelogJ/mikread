@@ -1,1 +1,1 @@
-SMS reader for MikroTik routers via RouterOS API or email.
+Reads SMS (UCS2) from MikroTik LTE routers via API or Email.

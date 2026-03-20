@@ -1,1 +1,24 @@
-An app for reading SMS messages from MikroTik routers via the RouterOS API or email. Supports 7-bit and UCS2 decoding. RouterOS version 7.15 or higher.
+Mikread — an application for reading SMS messages from MikroTik routers.
+Works with LTE and USB modems.
+Supports decoding of messages in UCS2 encoding.
+
+What the app does:
+Connects to your MikroTik router via the standard API (port 8728) and reads incoming SMS messages.
+Correctly decodes SMS in UCS2 encoding (all alphabets and special characters are displayed properly).
+Includes an option to delete SMS messages from the router (requires write permissions).
+
+Technical requirements:
+The API (port 8728) must be enabled on your router.
+A user with API and read permissions is required for reading.
+To delete SMS, write permissions and SMS storage in the modem are additionally required (/tool/sms/set sms-storage=modem).
+Works only with RouterOS version 7.15 and above.
+(sms - added SMS PDU to SMS inbox "print detail";)
+
+With the app, you can also read SMS received from the router by email as a JSON text file.
+To open such a file in the app, connect to the address localhost or 127.0.0.1
+To receive this file from the router, use the instruction and script provided in the link:
+https://github.com/safelogJ/mikread/blob/main/README.md#or-this-version-of-the-router-script-which-sends-email-notifications-about-incoming-sms-and-a-text-file-with-all-sms-routeros-7202
+
+⚠️ Important: When connecting via port 8728, data (including login/password and SMS content) is transmitted in unencrypted form.
+If you connect to the router over the Internet (outside your local network), there is a risk of third-party interception.
+It is strongly recommended to use the application within a local network.
