@@ -1,1 +1,0 @@
-SMS reader for MikroTik routers via RouterOS API or email.
