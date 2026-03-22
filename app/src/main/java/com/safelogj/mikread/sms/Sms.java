@@ -20,7 +20,7 @@ public class Sms {
     private final String timestamp;
     private final String message;
     private final String source;
-    private final String pdu;
+    private String pdu;
     private String type;
     private String decodeMessage = AppController.EMPTY_STRING;
     private int udh = -1;
@@ -57,10 +57,6 @@ public class Sms {
         return udh;
     }
 
-    public void setDecodeMessage(String decodeMessage) {
-        this.decodeMessage = decodeMessage;
-    }
-
     @NonNull
     public String getPhone() {
         return phone;
@@ -76,18 +72,9 @@ public class Sms {
         return source;
     }
 
-    public String getPdu() {
-        return pdu;
-    }
-
-    public void setUdh(int udh) {
-        this.udh = udh;
-    }
-
-    public static void decodePduToText(Sms sms) {
-        String pdu = sms.getPdu();
+    public void decodePduToText() {
         if (pdu.isEmpty()) {
-            pdu = getPduFromMessage(sms.getMessage());
+            pdu = getPduFromMessage(message);
         }
         if (pdu.isEmpty()) return;
 
@@ -135,7 +122,7 @@ public class Sms {
         int udl = data[index++] & 0xFF;
 
         // По умолчанию считаем, что UDH нет
-        int udh = -1; // Сброс номера части (по умолчанию -1, если сообщение одиночное)
+        udh = -1; // Сброс номера части (по умолчанию -1, если сообщение одиночное)
         int shift = 0;
 
         // 8. User Data Header (если есть)
@@ -169,13 +156,11 @@ public class Sms {
                 shift = getUdhSeptetsCount(udhLen + 1); // получаем кол-во септетов для (udh + его длинна) которые надо пропустить перед текстом
             }
         }
-        sms.setUdh(udh);
 
         // 9. Извлечение полезной нагрузки (User Data)
         if (index >= data.length) return;
         int userDataLength = data.length - index; // тут userDataLength равен udl
         // 10. Декодирование текста в зависимости от DCS
-        String decodeMessage;
         try {
             if ((dcs & 0x0C) == 0x08) { // Проверка бит 2 и 3 в DCS: 10xx = UCS2 (UTF-16BE)
                 decodeMessage = new String(data, index, userDataLength, StandardCharsets.UTF_16BE);
@@ -191,7 +176,6 @@ public class Sms {
             decodeMessage = AppController.EMPTY_STRING;
             Log.w(AppController.LOG_TAG, "Ошибка декодирования PDU ID=" + pdu, e);
         }
-        sms.setDecodeMessage(decodeMessage);
     }
 
     private static int getUdhSeptetsCount(int udhLen) {

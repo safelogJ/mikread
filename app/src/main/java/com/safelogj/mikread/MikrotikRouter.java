@@ -262,7 +262,7 @@ public class MikrotikRouter {
                 Sms newSms = new Sms(sms.get(Sms.PHONE_KEY), sms.get(Sms.TIMESTAMP_KEY), sms.get(Sms.MESSAGE_KEY),
                         sms.get(Sms.PDU_KEY), sms.get(Sms.SOURCE_KEY), sms.get(Sms.TYPE_KEY));
                 Log.d(AppController.LOG_TAG, "ID =  " + sms.get(".id"));
-                Sms.decodePduToText(newSms);
+                newSms.decodePduToText();
                 if (newSms.isValidSms()) {
                     decodedPartSmsList.add(newSms);
                 }

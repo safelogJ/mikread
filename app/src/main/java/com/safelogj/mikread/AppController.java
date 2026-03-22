@@ -218,7 +218,7 @@ public class AppController extends Application {
                     startIdx = -1;
                 }
                 Sms sms = parseJsonSms(jsonSms);
-                Sms.decodePduToText(sms);
+                sms.decodePduToText();
                 if (sms.isValidSms()) {
                     result.add(sms);
                 }
