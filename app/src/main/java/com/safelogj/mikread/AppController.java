@@ -90,6 +90,7 @@ public class AppController extends Application {
     private String selectedHost = EMPTY_STRING;
     private WeakReference<Activity> currentActivityRef;
     private MikrotikRouter connectedRouter = new MikrotikRouter(this);
+    private Cipher mCipher;
 
 
     @Override
@@ -217,7 +218,7 @@ public class AppController extends Application {
                     startIdx = -1;
                 }
                 Sms sms = parseJsonSms(jsonSms);
-                sms.decodePduToText();
+                Sms.decodePduToText(sms);
                 if (sms.isValidSms()) {
                     result.add(sms);
                 }
@@ -363,8 +364,7 @@ public class AppController extends Application {
                 file.write(fileWrapper.toString(4));
             }
 
-        } catch (
-                Exception e) { // Ловим Exception, т.к. Keystore/Cipher может бросить разные исключения
+        } catch (Exception e) { // Ловим Exception, т.к. Keystore/Cipher может бросить разные исключения
             Log.d(LOG_TAG, "Error writing encrypted JSON file or key management failure: ", e);
         }
     }
@@ -453,11 +453,13 @@ public class AppController extends Application {
 
     private byte[] encrypt(byte[] dataBytes) throws Exception {
         SecretKey secretKey = getOrCreateSecretKey();
-        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        if (mCipher == null) {
+            mCipher = Cipher.getInstance(TRANSFORMATION);
+        }
+        mCipher.init(Cipher.ENCRYPT_MODE, secretKey);
 
-        byte[] iv = cipher.getIV();
-        byte[] encryptedData = cipher.doFinal(dataBytes);
+        byte[] iv = mCipher.getIV();
+        byte[] encryptedData = mCipher.doFinal(dataBytes);
         byte[] combined = new byte[1 + iv.length + encryptedData.length];
         combined[0] = (byte) iv.length; // Сохраняем длину IV в первом байте
         System.arraycopy(iv, 0, combined, 1, iv.length); // Копируем IV начиная со второго байта
@@ -482,13 +484,12 @@ public class AppController extends Application {
         byte[] encryptedData = Arrays.copyOfRange(combinedBytes, 1 + ivLength, combinedBytes.length);
 
         SecretKey secretKey = getOrCreateSecretKey();
-        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+        mCipher = Cipher.getInstance(TRANSFORMATION);
         // GCM_TAG_LENGTH * 8, так как длина тега указывается в битах (16 байт * 8 = 128 бит)
         GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
 
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
-        return cipher.doFinal(encryptedData);
+        mCipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
+        return mCipher.doFinal(encryptedData);
     }
-
 
 }
