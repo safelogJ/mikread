@@ -12,8 +12,8 @@ configure<ApplicationExtension> {
         applicationId = "com.safelogj.mikread"
         minSdk = 23
         targetSdk = 36
-        versionCode = 14
-        versionName = "192.168.88.14"
+        versionCode = 15
+        versionName = "192.168.88.15"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
