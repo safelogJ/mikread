@@ -49,7 +49,6 @@ public class MikrotikRouter {
     private static final String ERROR_NO_PERMISSIONS = "not enough permissions";
     private static final String ERROR_LTE_NOT_ACTIVE = "LTE not active";
     private static final String ERROR_NO_SUCH_ITEM = "no such item";
-    private static final String ERROR_OKHTTP_CLIENT = "Error creating OkHttpClient";
     private static final String ERROR_DELETED_INTERRUPTED = "error: deletion interrupted";
     private static final String SPACE = " ";
     private static final String REST_API_PORT_PATTERN = ".*:\\d{1,5}$";
@@ -67,7 +66,7 @@ public class MikrotikRouter {
     private long startTime;
     private int delResultCode;
 
-@NonNull
+    @NonNull
     public static MikrotikRouter buildLocalhost(AppController appController, String host) {
         MikrotikRouter localRouter = new MikrotikRouter(appController);
         localRouter.setHost(host);
@@ -247,15 +246,7 @@ public class MikrotikRouter {
             Log.d(AppController.LOG_TAG, " Не выполнена команда в цикле = " + command + "\n " + e.getMessage());
             String msg = e.getMessage();
             if (msg != null) {
-                if (msg.startsWith(ERROR_NO_PERMISSIONS)) {
-                    delResultCode = SMS_REMOVED_NO_PERM;
-                }
-                if (msg.contains(ERROR_LTE_NOT_ACTIVE)) {
-                    delResultCode = LTE_NOT_ACTIVE;
-                }
-                if (msg.contains(ERROR_NO_SUCH_ITEM)) {
-                    delResultCode = SMS_REMOVED_NO_SUCH_ITEM;
-                }
+                setDelResultCode(msg);
             }
         }
         makePauseBetweenCommand();
@@ -370,7 +361,7 @@ public class MikrotikRouter {
     private void connectRestApi() {
         OkHttpClient client = appController.getOkHttpClient();
         if (client == null) {
-            sendInfoMessageToActivity(ERROR_OKHTTP_CLIENT);
+            sendInfoMessageToActivity(appController.getString(R.string.okhttp_error));
             return;
         }
         isConnecting = true;
@@ -454,7 +445,7 @@ public class MikrotikRouter {
     public void removeMotherSmsByDateRestApi(MotherSms motherSms) {
         OkHttpClient client = appController.getOkHttpClient();
         if (client == null) {
-            sendInfoMessageToActivity(ERROR_OKHTTP_CLIENT);
+            sendInfoMessageToActivity(appController.getString(R.string.okhttp_error));
             return;
         }
 
@@ -518,17 +509,8 @@ public class MikrotikRouter {
                 Log.d(AppController.LOG_TAG, "Ошибка при запросе индекса при REST API " + e);
                 String msg = e.getMessage();
                 if (msg != null) {
-                    if (msg.startsWith(ERROR_NO_PERMISSIONS)) {
-                        delResultCode = SMS_REMOVED_NO_PERM;
-                    }
-                    if (msg.contains(ERROR_LTE_NOT_ACTIVE)) {
-                        delResultCode = LTE_NOT_ACTIVE;
-                    }
-                    if (msg.contains(ERROR_NO_SUCH_ITEM)) {
-                        delResultCode = SMS_REMOVED_NO_SUCH_ITEM;
-                    }
+                    setDelResultCode(msg);
                 }
-
             }
             makePauseBetweenCommand();
 
@@ -567,17 +549,8 @@ public class MikrotikRouter {
             Log.d(AppController.LOG_TAG, "Ошибка при запросе индекса при REST API " + e);
             String msg = e.getMessage();
             if (msg != null) {
-                if (msg.startsWith(ERROR_NO_PERMISSIONS)) {
-                    delResultCode = SMS_REMOVED_NO_PERM;
-                }
-                if (msg.contains(ERROR_LTE_NOT_ACTIVE)) {
-                    delResultCode = LTE_NOT_ACTIVE;
-                }
-                if (msg.contains(ERROR_NO_SUCH_ITEM)) {
-                    delResultCode = SMS_REMOVED_NO_SUCH_ITEM;
-                }
+                setDelResultCode(msg);
             }
-
         }
         Log.d(AppController.LOG_TAG, "Собраны индексы REST API на удаление = " + indices);
         return indices.toString();
@@ -619,6 +592,18 @@ public class MikrotikRouter {
 
     private boolean isRestApiHost() {
         return host.matches(REST_API_PORT_PATTERN);
+    }
+
+    private void setDelResultCode(@NonNull String msg) {
+        if (msg.startsWith(ERROR_NO_PERMISSIONS)) {
+            delResultCode = SMS_REMOVED_NO_PERM;
+        }
+        if (msg.contains(ERROR_LTE_NOT_ACTIVE)) {
+            delResultCode = LTE_NOT_ACTIVE;
+        }
+        if (msg.contains(ERROR_NO_SUCH_ITEM)) {
+            delResultCode = SMS_REMOVED_NO_SUCH_ITEM;
+        }
     }
 
 }

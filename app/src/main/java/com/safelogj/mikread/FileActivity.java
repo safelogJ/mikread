@@ -56,7 +56,7 @@ public class FileActivity extends AppCompatActivity {
                     Log.d(AppController.LOG_TAG, "Ошибка получения разрешений на URI: " + e.getMessage(), e);
                 }
                 DocumentFile documentFile = DocumentFile.fromSingleUri(FileActivity.this, uri);
-                if (documentFile == null || !documentFile.exists()) {
+                if (!documentFile.exists()) {
                     Log.d(AppController.LOG_TAG, "Файл не найден или путь неверен!");
                     return;
                 }
@@ -197,7 +197,7 @@ public class FileActivity extends AppCompatActivity {
             Uri fileUri = uriViewModel.getCurrentFileUri();
             if (!appController.getMotherFileSmsList().isEmpty() && fileUri != null) {
                 DocumentFile documentFile = DocumentFile.fromSingleUri(FileActivity.this, fileUri);
-                if (documentFile != null && documentFile.exists() && documentFile.delete()) {
+                if (documentFile.exists() && documentFile.delete()) {
                     Log.d(AppController.LOG_TAG, "Файл успешно удален.");
                     uriViewModel.setCurrentFileUri(null);
                     errorText = AppController.EMPTY_STRING;

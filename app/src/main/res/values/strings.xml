@@ -27,6 +27,7 @@
     <string name="sms_remove_error">failed to remove sms</string>
     <string name="file_remove_error">failed to remove file</string>
     <string name="router_returned_error_code">router returned error code:</string>
+    <string name="okhttp_error">error creating okhttpclient</string>
     <string name="notice"><![CDATA[<br><br><b>
 For information on deleting messages and email notifications about new sms, see <a href="https://github.com/safelogJ/mikread/blob/main/README.md"><b> Github</b> </a><br><br>
 <b>You can leave a review on <a href="https://www.youtube.com/watch?v=jDvWbBmJsrQ&list=PL5Ch75WcmOXTx-dNMVtK-H6dT8Lc382nx&index=1"> YouTube </a></b> <br><br>
