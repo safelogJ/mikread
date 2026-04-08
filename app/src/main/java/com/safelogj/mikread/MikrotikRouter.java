@@ -42,8 +42,6 @@ public class MikrotikRouter {
     private static final String HTTPS = "https://";
     private static final String READ_SMS_COMMAND_DETAIL = "/tool/sms/inbox/print detail";
     private static final String READ_SMS_COMMAND_DETAIL_REST_API = "/rest/tool/sms/inbox";
-    //    private static final String READ_SMS_COMMAND_DETAIL_REST_API = "/rest/tool/sms/inbox?.proplist=" + Sms.PHONE_ID + "," + Sms.PHONE_KEY + ","
-//            + Sms.TIMESTAMP_KEY + "," + Sms.MESSAGE_KEY + "," + Sms.PDU_KEY + "," + Sms.SOURCE_KEY + "," + Sms.TYPE_KEY;
     private static final String REMOVE_ALL_SMS_COMMAND_PATTERN = "/tool/sms/inbox/remove numbers=%s";
     private static final String ROUTER_MODEL_PRINT = "/system/routerboard/print";
     private static final String ROUTER_MODEL_REST_API = "/rest/system/routerboard";
@@ -493,8 +491,7 @@ public class MikrotikRouter {
         String indices = getIndicesRestApi(client, motherSms);
         makePauseBetweenCommand();
         if (!indices.isEmpty()) {
-            String url = HTTPS + host + REMOVE_SMS_COMMAND_DETAIL_REST_API + indices;
-            Request request = getDelRequest(url);
+            Request request = getDelRequest(HTTPS + host + REMOVE_SMS_COMMAND_DETAIL_REST_API + indices);
             if (request == null) return;
 
             try (Response response = client.newCall(request).execute()) {

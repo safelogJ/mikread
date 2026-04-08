@@ -8,7 +8,9 @@
 
 ### Reading messages
 ![winbox](./inbox.jpg)
-- Connects to your MikroTik router via the standard API (port 8728)
+- Connects to your MikroTik router via the standard API (port 8728) or REST-API (www-ssl port)
+- To connect via API, specify only the address; to connect via REST-API, specify the address and port.
+- For information on how to set up a certificate for REST-API, see the YouTube tutorial.
 - Requests router model:
   ```
   /system/routerboard/print
