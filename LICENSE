@@ -10,11 +10,12 @@ You may obtain a copy of the License at
 This project contains components from the following third-party projects:
 
 1. mikrotik-java (Apache 2.0) - Copyright © 2013–2026 Gideon Le Grange
+2. OkHttp (Apache 2.0) - Copyright © Square, Inc.
 
 -------------------------------------------------------------------------
 FULL LICENSE TEXTS:
 
---- [1] Apache License, Version 2.0 ---
+--- [1-2] Apache License, Version 2.0 ---
 
                                  Apache License
                            Version 2.0, January 2004

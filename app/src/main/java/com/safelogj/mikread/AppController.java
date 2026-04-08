@@ -33,6 +33,8 @@ import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyStore;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,11 +44,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
+import okhttp3.OkHttpClient;
 
 
 public class AppController extends Application {
@@ -91,6 +99,7 @@ public class AppController extends Application {
     private WeakReference<Activity> currentActivityRef;
     private MikrotikRouter connectedRouter = new MikrotikRouter(this);
     private Cipher mCipher;
+    private OkHttpClient okHttpClient;
 
 
     @Override
@@ -98,6 +107,7 @@ public class AppController extends Application {
         super.onCreate();
         regActivityListener();
         readRoutersListAndSettingsEncrypted();
+        initOkHttpClient();
     }
 
     public Map<String, MikrotikRouter> getRoutersMap() {
@@ -134,6 +144,11 @@ public class AppController extends Application {
 
     public MikrotikRouter getConnectedRouter() {
         return connectedRouter;
+    }
+
+    @Nullable
+    public OkHttpClient getOkHttpClient() {
+        return okHttpClient;
     }
 
     public void writeSettingsToFile() {
@@ -364,7 +379,8 @@ public class AppController extends Application {
                 file.write(fileWrapper.toString(4));
             }
 
-        } catch (Exception e) { // Ловим Exception, т.к. Keystore/Cipher может бросить разные исключения
+        } catch (
+                Exception e) { // Ловим Exception, т.к. Keystore/Cipher может бросить разные исключения
             Log.d(LOG_TAG, "Error writing encrypted JSON file or key management failure: ", e);
         }
     }
@@ -490,6 +506,51 @@ public class AppController extends Application {
 
         mCipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
         return mCipher.doFinal(encryptedData);
+    }
+
+    private void initOkHttpClient() {
+        try {
+            final TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+
+                        @Override
+                        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                            //
+                        }
+
+                        @Override
+                        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+
+                            for (X509Certificate cert : chain) {
+                                cert.checkValidity(); // Выкинет, если дата сертификата истекла
+                            }
+                        }
+
+                        @Override
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return new X509Certificate[0];
+                        }
+                    }
+            };
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+
+
+            okHttpClient = new OkHttpClient.Builder()
+                    .sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustAllCerts[0])
+                    .hostnameVerifier((hostname, session) -> true)
+                    .connectTimeout(60, TimeUnit.SECONDS) // Время на установку связи с роутером
+                    .writeTimeout(15, TimeUnit.SECONDS)   // Время на отправку данных
+                    .readTimeout(60, TimeUnit.SECONDS)    // Время на ожидание ответа от роутера
+                    .callTimeout(70, TimeUnit.SECONDS) // Общее время на весь запрос с ответом, чтоб не переподключалось много раз
+                    .retryOnConnectionFailure(true)
+                    // .addInterceptor(new LoggingInterceptor())
+                    // .cookieJar(new RouterCookieJar())
+                    .build();
+        } catch (Exception e) {
+            Log.d(LOG_TAG, "Ошибка создания : OkHttpClient" + e.getMessage());
+        }
     }
 
 }

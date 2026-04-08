@@ -9,12 +9,15 @@ import com.safelogj.mikread.AppController;
 import java.nio.charset.StandardCharsets;
 
 public class Sms {
+    public static final String PHONE_ID = ".id";
     public static final String PHONE_KEY = "phone";
     public static final String TIMESTAMP_KEY = "timestamp";
     public static final String MESSAGE_KEY = "message";
     public static final String PDU_KEY = "pdu";
     public static final String SOURCE_KEY = "source";
     public static final String TYPE_KEY = "type";
+    public static final String MODEL_KEY = "model";
+    public static final String DETAIL_KEY = "detail";
     private static final String GSM_ALPHABET = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ\u001BÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
     private final String phone;
     private final String timestamp;
@@ -22,6 +25,7 @@ public class Sms {
     private final String source;
     private String pdu;
     private String type;
+    private String id;
     private String decodeMessage = AppController.EMPTY_STRING;
     private int udh = -1;
 
@@ -30,6 +34,17 @@ public class Sms {
     }
 
     public Sms(String phone, String timestamp, String message, String pdu, String source, String type) {
+        this.id = AppController.EMPTY_STRING;
+        this.phone = phone == null ? AppController.EMPTY_STRING : phone.trim();
+        this.timestamp = timestamp == null ? AppController.EMPTY_STRING : timestamp.trim();
+        this.message = message == null ? AppController.EMPTY_STRING : message;
+        this.pdu = pdu == null ? AppController.EMPTY_STRING : pdu;
+        this.source = source == null ? AppController.EMPTY_STRING : source.trim();
+        this.type = type == null ? AppController.EMPTY_STRING : type;
+    }
+
+    public Sms(String id, String phone, String timestamp, String message, String pdu, String source, String type) {
+        this.id = id == null ? AppController.EMPTY_STRING : id.trim();
         this.phone = phone == null ? AppController.EMPTY_STRING : phone.trim();
         this.timestamp = timestamp == null ? AppController.EMPTY_STRING : timestamp.trim();
         this.message = message == null ? AppController.EMPTY_STRING : message;
@@ -70,6 +85,10 @@ public class Sms {
     @NonNull
     public String getSource() {
         return source;
+    }
+    @NonNull
+    public String getId() {
+        return id;
     }
 
     public void decodePduToText() {
@@ -164,13 +183,13 @@ public class Sms {
         try {
             if ((dcs & 0x0C) == 0x08) { // Проверка бит 2 и 3 в DCS: 10xx = UCS2 (UTF-16BE)
                 decodeMessage = new String(data, index, userDataLength, StandardCharsets.UTF_16BE);
-                Log.d(AppController.LOG_TAG, "Decode type = UCS2");
+                Log.d(AppController.LOG_TAG, "Decode type = UCS2 " + decodeMessage);
             } else if ((dcs & 0x0C) == 0x04) { // 01xx: 8-bit Data
                 decodeMessage = new String(data, index, userDataLength, StandardCharsets.ISO_8859_1);
                 Log.d(AppController.LOG_TAG, "Decode type = 8-bit");
             } else { // ((dcs & 0x0C) == 0x00) 7-bit (00xx и зарезервированные 11xx) трактуем как 7-bit GSM
                 decodeMessage = decode7bit(data, index, udl, shift);
-                Log.d(AppController.LOG_TAG, "Decode type = 7-bit GSM");
+                Log.d(AppController.LOG_TAG, "Decode type = 7-bit GSM "+ decodeMessage);
             }
         } catch (Exception e) {
             decodeMessage = AppController.EMPTY_STRING;

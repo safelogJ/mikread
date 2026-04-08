@@ -4,11 +4,20 @@ import android.app.Activity;
 import android.os.SystemClock;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.safelogj.mikread.sms.MotherSms;
 import com.safelogj.mikread.sms.MotherSmsFactory;
 import com.safelogj.mikread.sms.Sms;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -18,6 +27,10 @@ import java.util.concurrent.TimeUnit;
 
 import me.legrange.mikrotik.ApiConnection;
 import me.legrange.mikrotik.MikrotikApiException;
+import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class MikrotikRouter {
     public static final int SMS_REMOVED_NO_PERM = 100;
@@ -26,13 +39,22 @@ public class MikrotikRouter {
     public static final int SMS_REMOVED_NO_SUCH_ITEM = 103;
     public static final int COMMAND_TIMEOUT = 5_000;
     public static final int SLEEP_TIMEOUT = 1100;
+    private static final String HTTPS = "https://";
     private static final String READ_SMS_COMMAND_DETAIL = "/tool/sms/inbox/print detail";
+    private static final String READ_SMS_COMMAND_DETAIL_REST_API = "/rest/tool/sms/inbox";
+    //    private static final String READ_SMS_COMMAND_DETAIL_REST_API = "/rest/tool/sms/inbox?.proplist=" + Sms.PHONE_ID + "," + Sms.PHONE_KEY + ","
+//            + Sms.TIMESTAMP_KEY + "," + Sms.MESSAGE_KEY + "," + Sms.PDU_KEY + "," + Sms.SOURCE_KEY + "," + Sms.TYPE_KEY;
     private static final String REMOVE_ALL_SMS_COMMAND_PATTERN = "/tool/sms/inbox/remove numbers=%s";
     private static final String ROUTER_MODEL_PRINT = "/system/routerboard/print";
+    private static final String ROUTER_MODEL_REST_API = "/rest/system/routerboard";
+    private static final String REMOVE_SMS_COMMAND_DETAIL_REST_API = "/rest/tool/sms/inbox/";
     private static final String ERROR_NO_PERMISSIONS = "not enough permissions";
     private static final String ERROR_LTE_NOT_ACTIVE = "LTE not active";
     private static final String ERROR_NO_SUCH_ITEM = "no such item";
+    private static final String ERROR_OKHTTP_CLIENT = "Error creating OkHttpClient";
     private static final String ERROR_DELETED_INTERRUPTED = "error: deletion interrupted";
+    private static final String SPACE = " ";
+    private static final String REST_API_PORT_PATTERN = ".*:\\d{1,5}$";
     private final AppController appController;
     private volatile String errorText = AppController.EMPTY_STRING;
     private volatile boolean isConnecting;
@@ -43,11 +65,12 @@ public class MikrotikRouter {
     private String pass = AppController.EMPTY_STRING;
     private String note = AppController.EMPTY_STRING;
     private String model = AppController.EMPTY_STRING;
+    private String credential = AppController.EMPTY_STRING;
     private long startTime;
     private int delResultCode;
 
 
-    public static  MikrotikRouter buildLocalhost(AppController appController, String host) {
+    public static MikrotikRouter buildLocalhost(AppController appController, String host) {
         MikrotikRouter localRouter = new MikrotikRouter(appController);
         localRouter.setHost(host);
         localRouter.setUser(host);
@@ -108,11 +131,28 @@ public class MikrotikRouter {
         return isConnecting;
     }
 
+    @NonNull
     public String getErrorText() {
         return errorText;
     }
 
     public void connect() {
+        if (isRestApiHost()) {
+            connectRestApi();
+        } else {
+            connectApi();
+        }
+    }
+
+    public void removeMotherSmsByDate(MotherSms motherSms) {
+        if (isRestApiHost()) {
+            removeMotherSmsByDateRestApi(motherSms);
+        } else {
+            removeMotherSmsByDateApi(motherSms);
+        }
+    }
+
+    private void connectApi() {
         isConnecting = true;
         sendInfoMessageToActivity(appController.getString(R.string.connecting));
         startTime = SystemClock.elapsedRealtime();
@@ -121,9 +161,9 @@ public class MikrotikRouter {
             con.setTimeout(COMMAND_TIMEOUT);
             con.login(user, pass);
             Log.d(AppController.LOG_TAG, "Перед читкой модели = ");
-            readRouterModel(con);
+            readRouterModelApi(con);
             Log.d(AppController.LOG_TAG, "Перед обновленем смсок = ");
-            loadInboxSmsAndBuildMothers(con);
+            loadInboxSmsAndBuildMothersApi(con);
             Log.d(AppController.LOG_TAG, "Размер списка смс SMS: id = " + decodedPartSmsList.size());
             if (!motherSmsList.isEmpty()) {
                 sendInfoMessageToActivity(AppController.EMPTY_STRING);
@@ -143,7 +183,7 @@ public class MikrotikRouter {
         isConnecting = false;
     }
 
-    public void removeMotherSmsByDate(MotherSms motherSms) {
+    private void removeMotherSmsByDateApi(MotherSms motherSms) {
         isConnecting = true;
         startTime = SystemClock.elapsedRealtime();
         sendInfoMessageToActivity(appController.getString(R.string.removal));
@@ -153,11 +193,11 @@ public class MikrotikRouter {
             Log.d(AppController.LOG_TAG, "Перед логином метод = ");
             con.login(user, pass);
             Log.d(AppController.LOG_TAG, "Перед удалением метод = ");
-            removePartsSms(motherSms, con);
+            removePartsSmsApi(motherSms, con);
             Log.d(AppController.LOG_TAG, "Перед читкой модели = ");
-            readRouterModel(con);
+            readRouterModelApi(con);
             Log.d(AppController.LOG_TAG, "Перед обновлением смсок = ");
-            loadInboxSmsAndBuildMothers(con);
+            loadInboxSmsAndBuildMothersApi(con);
             sendInfoMessageToActivity(getFinalMessageToActivity(delResultCode));
             Log.d(AppController.LOG_TAG, "Конец удачнного удаления всех смс, отправлена команда обновиться таблице смс");
         } catch (MikrotikApiException e) {
@@ -177,17 +217,19 @@ public class MikrotikRouter {
         isConnecting = false;
     }
 
-    private void errorCatch(MikrotikApiException e) {
+    private void errorCatch(Exception e) {
         String msg = e.getMessage();
         if (msg != null) {
-            Log.d(AppController.LOG_TAG, msg);
+            Log.d(AppController.LOG_TAG, msg + e.getClass());
             int durationMs = (int) (SystemClock.elapsedRealtime() - startTime);
             msg = msg.replace("after 60000ms", "after " + durationMs + "ms");
+        } else {
+            msg = AppController.EMPTY_STRING;
         }
         sendInfoMessageToActivity(msg);
     }
 
-    private void removePartsSms(MotherSms motherSms, ApiConnection con) {
+    private void removePartsSmsApi(MotherSms motherSms, ApiConnection con) {
         delResultCode = 0;
         String indices = getIndices(sendCommand(READ_SMS_COMMAND_DETAIL, con), motherSms);
         if (!indices.isEmpty()) {
@@ -245,15 +287,15 @@ public class MikrotikRouter {
     }
 
 
-    private void readRouterModel(ApiConnection con) throws MikrotikApiException {
+    private void readRouterModelApi(ApiConnection con) throws MikrotikApiException {
         List<Map<String, String>> res = con.execute(ROUTER_MODEL_PRINT);
         if (!res.isEmpty()) {
-            model = res.get(0).get("model");
+            model = res.get(0).get(Sms.MODEL_KEY);
             Log.d(AppController.LOG_TAG, "Модель роутера = " + model);
         }
     }
 
-    private void loadInboxSmsAndBuildMothers(ApiConnection con) throws MikrotikApiException {
+    private void loadInboxSmsAndBuildMothersApi(ApiConnection con) throws MikrotikApiException {
         decodedPartSmsList = new ArrayList<>();
         motherSmsList = new ArrayList<>();
         List<Map<String, String>> res = con.execute(READ_SMS_COMMAND_DETAIL);
@@ -273,7 +315,7 @@ public class MikrotikRouter {
         MotherSmsFactory.fillMotherSmsList(decodedPartSmsList, motherSmsList);
     }
 
-    private void sendInfoMessageToActivity(String errorString) {
+    private void sendInfoMessageToActivity(@NonNull String errorString) {
         errorText = errorString;
         WeakReference<Activity> activityWeakReference = appController.getCurrentActivityRef();
         if (activityWeakReference != null) {
@@ -324,6 +366,260 @@ public class MikrotikRouter {
         }
         Log.d(AppController.LOG_TAG, "Собраны индексы на удаление = " + indices);
         return indices.toString();
+    }
+
+    private void connectRestApi() {
+        OkHttpClient client = appController.getOkHttpClient();
+        if (client == null) {
+            sendInfoMessageToActivity(ERROR_OKHTTP_CLIENT);
+            return;
+        }
+        isConnecting = true;
+        sendInfoMessageToActivity(appController.getString(R.string.connecting));
+        startTime = SystemClock.elapsedRealtime();
+        model = AppController.EMPTY_STRING;
+        checkCredential();
+        try {
+            readRouterModelRestApi(client);
+            loadInboxSmsAndBuildMothersRestApi(client);
+            Log.d(AppController.LOG_TAG, "Размер списка смс SMS: id = " + decodedPartSmsList.size());
+            if (!motherSmsList.isEmpty()) {
+                sendInfoMessageToActivity(AppController.EMPTY_STRING);
+                startSmsActivity();
+            } else {
+                sendInfoMessageToActivity(appController.getString(R.string.inbox_empty));
+            }
+        } catch (Exception e) {
+            Log.d(AppController.LOG_TAG, "Ошибка при REST API = " + e.getMessage());
+            if (!model.isEmpty()) {
+                sendInfoMessageToActivity(appController.getString(R.string.inbox_empty));
+            } else {
+                errorCatch(e);
+            }
+        }
+        isConnecting = false;
+    }
+
+    private void readRouterModelRestApi(OkHttpClient client) throws IOException, JSONException, IllegalStateException {
+        Request request = getRequest(HTTPS + host + ROUTER_MODEL_REST_API);
+        if (request == null) return;
+
+        try (Response response = client.newCall(request).execute()) {
+            if (response.isSuccessful()) {
+                String body = response.body().string().trim();
+                if (body.startsWith("[")) {
+                    JSONArray jsonArray = new JSONArray(body);
+                    if (jsonArray.length() > 0) {
+                        model = jsonArray.getJSONObject(0).getString(Sms.MODEL_KEY);
+                    }
+                } else {
+                    model = new JSONObject(body).getString(Sms.MODEL_KEY);
+                }
+                Log.d(AppController.LOG_TAG, "Модель роутера = " + model);
+            } else {
+                Log.d(AppController.LOG_TAG, "Ошибка от роутера: при запросе модели " + response.code() + response.body().string());
+                throw new IOException(appController.getString(R.string.router_returned_error_code) + SPACE + response.code());
+            }
+        }
+    }
+
+    private void loadInboxSmsAndBuildMothersRestApi(OkHttpClient client) throws IOException, JSONException, IllegalStateException {
+        decodedPartSmsList = new ArrayList<>();
+        motherSmsList = new ArrayList<>();
+
+        Request request = getRequest(HTTPS + host + READ_SMS_COMMAND_DETAIL_REST_API);
+        if (request == null) return;
+
+        try (Response response = client.newCall(request).execute()) {
+            if (response.isSuccessful()) {
+                JSONArray jsonArray = new JSONArray(response.body().string());
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject sms = jsonArray.getJSONObject(i);
+                    Sms newSms = new Sms(sms.getString(Sms.PHONE_ID), sms.getString(Sms.PHONE_KEY), sms.getString(Sms.TIMESTAMP_KEY),
+                            sms.getString(Sms.MESSAGE_KEY), sms.getString(Sms.PDU_KEY), sms.getString(Sms.SOURCE_KEY), sms.getString(Sms.TYPE_KEY));
+                    Log.d(AppController.LOG_TAG, "ID =  " + sms.get(".id"));
+                    newSms.decodePduToText();
+                    if (newSms.isValidSms()) {
+                        decodedPartSmsList.add(newSms);
+                    }
+                }
+            } else {
+                Log.d(AppController.LOG_TAG, "Ошибка в ответе роутера при REST API запросе смс: " + response.code());
+                throw new IOException(appController.getString(R.string.router_returned_error_code) + SPACE + response.code());
+            }
+
+        }
+        MotherSmsFactory.fillMotherSmsList(decodedPartSmsList, motherSmsList);
+    }
+
+    public void removeMotherSmsByDateRestApi(MotherSms motherSms) {
+        OkHttpClient client = appController.getOkHttpClient();
+        if (client == null) {
+            sendInfoMessageToActivity(ERROR_OKHTTP_CLIENT);
+            return;
+        }
+
+        isConnecting = true;
+        startTime = SystemClock.elapsedRealtime();
+        sendInfoMessageToActivity(appController.getString(R.string.removal));
+        model = AppController.EMPTY_STRING;
+        checkCredential();
+
+        try {
+            removePartsSmsRestApi(motherSms, client);
+            readRouterModelRestApi(client);
+            loadInboxSmsAndBuildMothersRestApi(client);
+            sendInfoMessageToActivity(getFinalMessageToActivity(delResultCode));
+        } catch (Exception e) {
+            Log.d(AppController.LOG_TAG, "Конец удаления всех смс, НЕУДАЧА");
+            if (model.isEmpty()) {
+                if (!motherSmsList.isEmpty()) {
+                    errorCatch(e);
+                } else {
+                    sendInfoMessageToActivity(appController.getString(R.string.inbox_empty));
+                }
+
+            } else {
+                sendInfoMessageToActivity(AppController.EMPTY_STRING);
+            }
+        }
+
+        sendRedrawSmsCommand();
+        isConnecting = false;
+    }
+
+    private void removePartsSmsRestApi(MotherSms motherSms, OkHttpClient client) {
+        delResultCode = 0;
+        String indices = getIndicesRestApi(client, motherSms);
+        makePauseBetweenCommand();
+        if (!indices.isEmpty()) {
+            String url = HTTPS + host + REMOVE_SMS_COMMAND_DETAIL_REST_API + indices;
+            Request request = getDelRequest(url);
+            if (request == null) return;
+
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    Log.d(AppController.LOG_TAG, "Ошибка в ответе роутера при REST API удалении смс: " + response.code());
+                    if (response.code() == HttpURLConnection.HTTP_NOT_FOUND) {
+                        throw new IOException(ERROR_NO_SUCH_ITEM);
+                    }
+                    String body = response.body().string().trim();
+                    if (body.startsWith("[")) {
+                        JSONArray jsonArray = new JSONArray(body);
+                        if (jsonArray.length() > 0) {
+                            throw new IOException(jsonArray.getJSONObject(0).getString(Sms.DETAIL_KEY));
+                        }
+                    } else {
+                        throw new IOException(new JSONObject(body).getString(Sms.DETAIL_KEY));
+                    }
+
+                } else {
+                    Log.d(AppController.LOG_TAG, "Смс удалены при REST API : " + response.code());
+                }
+            } catch (Exception e) {
+                Log.d(AppController.LOG_TAG, "Ошибка при запросе индекса при REST API " + e);
+                String msg = e.getMessage();
+                if (msg != null) {
+                    if (msg.startsWith(ERROR_NO_PERMISSIONS)) {
+                        delResultCode = SMS_REMOVED_NO_PERM;
+                    }
+                    if (msg.contains(ERROR_LTE_NOT_ACTIVE)) {
+                        delResultCode = LTE_NOT_ACTIVE;
+                    }
+                    if (msg.contains(ERROR_NO_SUCH_ITEM)) {
+                        delResultCode = SMS_REMOVED_NO_SUCH_ITEM;
+                    }
+                }
+
+            }
+            makePauseBetweenCommand();
+
+        } else {
+            motherSmsList.remove(motherSms);
+        }
+    }
+
+    private String getIndicesRestApi(OkHttpClient client, MotherSms motherSms) {
+        StringBuilder indices = new StringBuilder(AppController.EMPTY_STRING);
+
+        Request request = getRequest(HTTPS + host + READ_SMS_COMMAND_DETAIL_REST_API);
+        if (request == null) return indices.toString();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (response.isSuccessful()) {
+                JSONArray jsonArray = new JSONArray(response.body().string());
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject smsFind = jsonArray.getJSONObject(i);
+                    if (MotherSmsFactory.isSameTimestamp(smsFind.getString(Sms.TIMESTAMP_KEY), motherSms.getGroupTimestamp())
+                            && motherSms.getSource().equals(smsFind.getString(Sms.SOURCE_KEY))
+                            && motherSms.getPhone().equals(smsFind.getString(Sms.PHONE_KEY))
+                            && motherSms.isMessageContains(smsFind.getString(Sms.MESSAGE_KEY))) {
+                        if (indices.length() != 0) {
+                            indices.append(",");
+                        }
+                        indices.append(smsFind.getString(Sms.PHONE_ID));
+                    }
+                }
+            } else {
+                Log.d(AppController.LOG_TAG, "Ошибка в ответе роутера при REST API запросе смс: " + response.code());
+            }
+
+        } catch (Exception e) {
+            Log.d(AppController.LOG_TAG, "Ошибка при запросе индекса при REST API " + e);
+            String msg = e.getMessage();
+            if (msg != null) {
+                if (msg.startsWith(ERROR_NO_PERMISSIONS)) {
+                    delResultCode = SMS_REMOVED_NO_PERM;
+                }
+                if (msg.contains(ERROR_LTE_NOT_ACTIVE)) {
+                    delResultCode = LTE_NOT_ACTIVE;
+                }
+                if (msg.contains(ERROR_NO_SUCH_ITEM)) {
+                    delResultCode = SMS_REMOVED_NO_SUCH_ITEM;
+                }
+            }
+
+        }
+        Log.d(AppController.LOG_TAG, "Собраны индексы REST API на удаление = " + indices);
+        return indices.toString();
+    }
+
+    @Nullable
+    private Request getRequest(String url) {
+        Request request;
+        try {
+            request = new Request.Builder().url(url)
+                    .addHeader("Authorization", credential)
+                    .get()
+                    .build();
+        } catch (Exception e) {
+            request = null;
+        }
+        return request;
+    }
+
+    @Nullable
+    private Request getDelRequest(String url) {
+        Request request;
+        try {
+            request = new Request.Builder().url(url)
+                    .addHeader("Authorization", credential)
+                    .delete()
+                    .build();
+        } catch (Exception e) {
+            request = null;
+        }
+        return request;
+    }
+
+    private void checkCredential() {
+        if (credential.isEmpty()) {
+            credential = Credentials.basic(user, pass);
+        }
+    }
+
+    private boolean isRestApiHost() {
+        return host.matches(REST_API_PORT_PATTERN);
     }
 
 }

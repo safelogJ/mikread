@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.documentfile)
     implementation(libs.constraintlayout)
     implementation(libs.tik4j)
+    implementation(libs.okhttp)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

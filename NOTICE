@@ -5,3 +5,8 @@ This application includes open source and third-party libraries:
 1. mikrotik-java (https://github.com/GideonLeGrange/mikrotik-java)
    Copyright © 2013–2025 Gideon Le Grange
    Licensed under the Apache License, Version 2.0
+
+2. OkHttp
+   Copyright © Square, Inc.
+   Licensed under the Apache License, Version 2.0
+   https://github.com/square/okhttp
