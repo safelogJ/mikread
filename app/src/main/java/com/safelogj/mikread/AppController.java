@@ -165,11 +165,11 @@ public class AppController extends Application {
 
     public void connectToValidRouter(MikrotikRouter router) {
         connectedRouter = router;
-        executor.execute(router::connect);
+        executor.execute(router::readSmsFromRouter);
     }
 
     public void removeMotherSms(MotherSms sms) {
-        executor.execute(() -> connectedRouter.removeMotherSmsByDate(sms));
+        executor.execute(() -> connectedRouter.removeSmsFromRouter(sms));
     }
 
     public void sortRoutersMap(int comparatorIdx) {
@@ -246,9 +246,9 @@ public class AppController extends Application {
 
         return result;
     }
-
-    private Sms parseJsonSms(String line) {
-        if (line == null || line.isEmpty()) {
+    @NonNull
+    private Sms parseJsonSms(@NonNull String line) {
+        if (line.isEmpty()) {
             return Sms.empty();
         }
 

@@ -3,7 +3,6 @@ package com.safelogj.mikread.sms;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.safelogj.mikread.AppController;
 
@@ -43,7 +42,7 @@ public class Sms {
         this.type = type == null ? AppController.EMPTY_STRING : type;
     }
 
-    public Sms(String id, String phone, String timestamp, String message, String pdu, String source, String type) {
+    public Sms(String phone, String timestamp, String message, String pdu, String source, String type, String id) {
         this(phone, timestamp, message, pdu, source, type);
         this.id = id == null ? AppController.EMPTY_STRING : id.trim();
     }
@@ -58,6 +57,7 @@ public class Sms {
         return timestamp;
     }
 
+    @NonNull
     public String getDecodeMessage() {
         return decodeMessage;
     }

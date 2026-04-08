@@ -67,7 +67,7 @@ public class MikrotikRouter {
     private long startTime;
     private int delResultCode;
 
-
+@NonNull
     public static MikrotikRouter buildLocalhost(AppController appController, String host) {
         MikrotikRouter localRouter = new MikrotikRouter(appController);
         localRouter.setHost(host);
@@ -134,7 +134,7 @@ public class MikrotikRouter {
         return errorText;
     }
 
-    public void connect() {
+    public void readSmsFromRouter() {
         if (isRestApiHost()) {
             connectRestApi();
         } else {
@@ -142,7 +142,7 @@ public class MikrotikRouter {
         }
     }
 
-    public void removeMotherSmsByDate(MotherSms motherSms) {
+    public void removeSmsFromRouter(MotherSms motherSms) {
         if (isRestApiHost()) {
             removeMotherSmsByDateRestApi(motherSms);
         } else {
@@ -347,6 +347,7 @@ public class MikrotikRouter {
         };
     }
 
+    @NonNull
     private String getIndices(List<Map<String, String>> res, MotherSms motherSms) {
         int id = 0;
         StringBuilder indices = new StringBuilder(AppController.EMPTY_STRING);
@@ -433,8 +434,8 @@ public class MikrotikRouter {
                 JSONArray jsonArray = new JSONArray(response.body().string());
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject sms = jsonArray.getJSONObject(i);
-                    Sms newSms = new Sms(sms.getString(Sms.PHONE_ID), sms.getString(Sms.PHONE_KEY), sms.getString(Sms.TIMESTAMP_KEY),
-                            sms.getString(Sms.MESSAGE_KEY), sms.getString(Sms.PDU_KEY), sms.getString(Sms.SOURCE_KEY), sms.getString(Sms.TYPE_KEY));
+                    Sms newSms = new Sms(sms.getString(Sms.PHONE_KEY), sms.getString(Sms.TIMESTAMP_KEY), sms.getString(Sms.MESSAGE_KEY),
+                            sms.getString(Sms.PDU_KEY), sms.getString(Sms.SOURCE_KEY), sms.getString(Sms.TYPE_KEY), sms.getString(Sms.PHONE_ID));
                     Log.d(AppController.LOG_TAG, "ID =  " + sms.get(".id"));
                     newSms.decodePduToText();
                     if (newSms.isValidSms()) {
@@ -536,6 +537,7 @@ public class MikrotikRouter {
         }
     }
 
+    @NonNull
     private String getIndicesRestApi(OkHttpClient client, MotherSms motherSms) {
         StringBuilder indices = new StringBuilder(AppController.EMPTY_STRING);
 
