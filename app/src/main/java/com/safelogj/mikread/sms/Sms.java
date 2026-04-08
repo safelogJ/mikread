@@ -3,6 +3,7 @@ package com.safelogj.mikread.sms;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.safelogj.mikread.AppController;
 
@@ -25,7 +26,7 @@ public class Sms {
     private final String source;
     private String pdu;
     private String type;
-    private String id;
+    private String id = AppController.EMPTY_STRING;
     private String decodeMessage = AppController.EMPTY_STRING;
     private int udh = -1;
 
@@ -34,7 +35,6 @@ public class Sms {
     }
 
     public Sms(String phone, String timestamp, String message, String pdu, String source, String type) {
-        this.id = AppController.EMPTY_STRING;
         this.phone = phone == null ? AppController.EMPTY_STRING : phone.trim();
         this.timestamp = timestamp == null ? AppController.EMPTY_STRING : timestamp.trim();
         this.message = message == null ? AppController.EMPTY_STRING : message;
@@ -44,13 +44,8 @@ public class Sms {
     }
 
     public Sms(String id, String phone, String timestamp, String message, String pdu, String source, String type) {
+        this(phone, timestamp, message, pdu, source, type);
         this.id = id == null ? AppController.EMPTY_STRING : id.trim();
-        this.phone = phone == null ? AppController.EMPTY_STRING : phone.trim();
-        this.timestamp = timestamp == null ? AppController.EMPTY_STRING : timestamp.trim();
-        this.message = message == null ? AppController.EMPTY_STRING : message;
-        this.pdu = pdu == null ? AppController.EMPTY_STRING : pdu;
-        this.source = source == null ? AppController.EMPTY_STRING : source.trim();
-        this.type = type == null ? AppController.EMPTY_STRING : type;
     }
 
 
