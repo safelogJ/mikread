@@ -44,8 +44,8 @@ You may delete stored links at any time through the application interface (in th
 
 Security of Data Transmission When Connecting to a Router
 
-When using Mikread to connect to a router over the Internet, the standard MikroTik API (port 8728) is used.
-Data transmission, including the login and password required for the connection, is carried out in an unencrypted form.
+When using the Mikread app to connect to the router over the internet, the standard MikroTik API (port 8728) or REST API (www-ssl port) is used.
+Data transmitted via the API, including the login and password for connection, is unencrypted.
 The Company does not transmit or store this data on its servers and has no access to it. However, the User should be aware that when using an unencrypted connection, there is a risk that third parties may intercept this data.
 
 It is recommended to use the application within local networks.
