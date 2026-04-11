@@ -133,6 +133,10 @@ public class MikrotikRouter {
         return errorText;
     }
 
+    public boolean isRestApiHost() {
+        return host.matches(REST_API_PORT_PATTERN);
+    }
+
     public void readSmsFromRouter() {
         if (isRestApiHost()) {
             connectRestApi();
@@ -422,6 +426,7 @@ public class MikrotikRouter {
 
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
+                Log.d(AppController.LOG_TAG, "ответ роутера при REST API запросе смс: " + response.code());
                 JSONArray jsonArray = new JSONArray(response.body().string());
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject sms = jsonArray.getJSONObject(i);
@@ -590,9 +595,7 @@ public class MikrotikRouter {
         }
     }
 
-    private boolean isRestApiHost() {
-        return host.matches(REST_API_PORT_PATTERN);
-    }
+
 
     private void setDelResultCode(@NonNull String msg) {
         if (msg.startsWith(ERROR_NO_PERMISSIONS)) {

@@ -9,6 +9,8 @@
 */build/
 gen/
 bin/
+app/src/androidTest/
+app/src/test/
 
 # Local and generated configurations
 local.properties

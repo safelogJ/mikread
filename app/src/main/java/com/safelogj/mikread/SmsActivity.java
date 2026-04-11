@@ -181,7 +181,7 @@ public class SmsActivity extends AppCompatActivity {
             appController.removeMotherSms(selectedMotherSms);
 
             erasingTime = MikrotikRouter.SLEEP_TIMEOUT * 2L;
-            if (connectedRouter.getMotherSmsList().size() == 1) {
+            if (connectedRouter.getMotherSmsList().size() == 1 && !connectedRouter.isRestApiHost()) {
                 erasingTime += MikrotikRouter.COMMAND_TIMEOUT;
             }
             eraseTextGradually(erasingTime, selectedMessage, selectedTextView);
