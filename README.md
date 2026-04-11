@@ -152,7 +152,7 @@ Don't forget to specify your email in the script.
 ```
 #### The scheduler runs the script after startup and then every 5 minutes. To delay the first run of the script until mobile internet is available on the router, we use the value "startup" in the lastSmsTime variable to skip the first execution.
 ---
-Поддержать разработчика:
+### ❤️ Support
 
 * Ozon : 2204 2402 5165 6593
 * VISA : 4138 4601 5101 6667
