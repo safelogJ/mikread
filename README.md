@@ -152,3 +152,16 @@ Don't forget to specify your email in the script.
 ```
 #### The scheduler runs the script after startup and then every 5 minutes. To delay the first run of the script until mobile internet is available on the router, we use the value "startup" in the lastSmsTime variable to skip the first execution.
 ---
+Поддержать разработчика:
+
+* Ozon : 2204 2402 5165 6593
+* VISA : 4138 4601 5101 6667
+
+* BTC (Bitcoin)  bc1q5xyw4d0rnue4e67dfme306dmq32tcqcfp4nldp
+* ETH (Ethereum) 0xa3ae9d297c6dbc4b6db1cfc6d056ed86ca3209e6
+* USDT (Ethereum) 0xa3ae9d297c6dbc4b6db1cfc6d056ed86ca3209e6
+* USDC (Ethereum) 0xa3ae9d297c6dbc4b6db1cfc6d056ed86ca3209e6
+* SOL (Solana) 4S8eZhQoKpSGfKdo8Bo8KYJR5F66xjAmanJfnvbjKgXB
+* TWT (BNB Smart Chain) 0xa3ae9d297c6dbc4b6db1cfc6d056ed86ca3209e6
+* BNB (BNB Smart Chain) 0xa3ae9d297c6dbc4b6db1cfc6d056ed86ca3209e6
+___
