@@ -9,7 +9,7 @@ import com.safelogj.mikread.AppController;
 import java.nio.charset.StandardCharsets;
 
 public class Sms {
-    public static final String PHONE_ID = ".id";
+    public static final String ID_KEY = ".id";
     public static final String PHONE_KEY = "phone";
     public static final String TIMESTAMP_KEY = "timestamp";
     public static final String MESSAGE_KEY = "message";
@@ -25,7 +25,6 @@ public class Sms {
     private final String source;
     private String pdu;
     private String type;
-    private String id = AppController.EMPTY_STRING;
     private String decodeMessage = AppController.EMPTY_STRING;
     private int udh = -1;
 
@@ -41,12 +40,6 @@ public class Sms {
         this.source = source == null ? AppController.EMPTY_STRING : source.trim();
         this.type = type == null ? AppController.EMPTY_STRING : type;
     }
-
-    public Sms(String phone, String timestamp, String message, String pdu, String source, String type, String id) {
-        this(phone, timestamp, message, pdu, source, type);
-        this.id = id == null ? AppController.EMPTY_STRING : id.trim();
-    }
-
 
     public boolean isValidSms() {
         return !phone.isEmpty() && !timestamp.isEmpty() && !decodeMessage.isEmpty();
@@ -80,10 +73,6 @@ public class Sms {
     @NonNull
     public String getSource() {
         return source;
-    }
-    @NonNull
-    public String getId() {
-        return id;
     }
 
     public void decodePduToText() {

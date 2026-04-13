@@ -431,8 +431,8 @@ public class MikrotikRouter {
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject sms = jsonArray.getJSONObject(i);
                     Sms newSms = new Sms(sms.getString(Sms.PHONE_KEY), sms.getString(Sms.TIMESTAMP_KEY), sms.getString(Sms.MESSAGE_KEY),
-                            sms.getString(Sms.PDU_KEY), sms.getString(Sms.SOURCE_KEY), sms.getString(Sms.TYPE_KEY), sms.getString(Sms.PHONE_ID));
-                    Log.d(AppController.LOG_TAG, "ID =  " + sms.get(".id"));
+                            sms.getString(Sms.PDU_KEY), sms.getString(Sms.SOURCE_KEY), sms.getString(Sms.TYPE_KEY));
+                    Log.d(AppController.LOG_TAG, "ID =  " + sms.getString(Sms.ID_KEY));
                     newSms.decodePduToText();
                     if (newSms.isValidSms()) {
                         decodedPartSmsList.add(newSms);
@@ -543,7 +543,7 @@ public class MikrotikRouter {
                         if (indices.length() != 0) {
                             indices.append(",");
                         }
-                        indices.append(smsFind.getString(Sms.PHONE_ID));
+                        indices.append(smsFind.getString(Sms.ID_KEY));
                     }
                 }
             } else {
