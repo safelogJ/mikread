@@ -1,14 +1,23 @@
 package com.safelogj.mikread;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.content.ContextCompat;
@@ -17,22 +26,59 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.documentfile.provider.DocumentFile;
 
 import com.safelogj.mikread.databinding.ActivityMainBinding;
 import com.safelogj.mikread.databinding.RouterRowBinding;
 import com.safelogj.mikread.helpers.PassFieldListener;
 
+import java.io.InputStream;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private ActivityMainBinding mBinding;
     private AppController appController;
+    private String selectedHost = AppController.EMPTY_STRING;
+    private final ActivityResultCallback<ActivityResult> callbackForGeneralPermitURI = result -> {
+        if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+            Uri uri = result.getData().getData();
+            if (uri != null) {
+                DocumentFile documentFile = DocumentFile.fromSingleUri(MainActivity.this, uri);
+                if (documentFile.exists()) {
+                    try (InputStream is = getContentResolver().openInputStream(uri)) {
+                        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+                        X509Certificate cert = (X509Certificate) cf.generateCertificate(is);
+                        byte[] certBytes = cert.getEncoded();
+                        String certName = documentFile.getName();
+                        appController.addCertToRouter(certBytes, selectedHost, certName);
+                        drawCertName(certName);
+                        Log.d(AppController.LOG_TAG, "Сертификат успешно импортирован");
+                    } catch (Exception e) {
+                        drawCertName(appController.getString(R.string.cert_import_error));
+                        Log.i(AppController.LOG_TAG, "Ошибка импорта сертификата: " + e.getMessage());
+                    }
+                }
+            }
+        }
+    };
+    private final ActivityResultLauncher<Intent> requestGeneralPermitURI =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), callbackForGeneralPermitURI);
+
+    private final ActivityResultCallback<Boolean> callbackAskReadFilePermit = result -> {
+        if (Boolean.TRUE == result) {
+            requestGeneralPermitURI.launch(getIntentActionOpenDoc());
+        }
+    };
+    private final ActivityResultLauncher<String> requestAskReadFilePermit =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), callbackAskReadFilePermit);
+
+    private ActivityMainBinding mBinding;
     private MikrotikRouter currentRouter;
     private Map<String, MikrotikRouter> routersMap;
-    private String selectedHost;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +106,8 @@ public class MainActivity extends AppCompatActivity {
         appController = (AppController) getApplication();
         routersMap = appController.getRoutersMap();
         currentRouter = appController.getCurrentRouter();
+        setAddCertBtn();
+        setDelCertBtn();
         mBinding.btnAddSet.setOnClickListener(view -> setAddSetBtnListener());
         mBinding.btnConnect.setOnClickListener(view -> connectToRouter());
         mBinding.btnDel.setOnClickListener(view -> delRouter());
@@ -110,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
         MikrotikRouter router;
         String host = mBinding.editRouterHost.getText().toString().trim();
         if (isLocalHost(host)) {
-           router = MikrotikRouter.buildLocalhost(appController, host);
+            router = MikrotikRouter.buildLocalhost(appController, host);
         } else {
             router = fillRouterFromFields(new MikrotikRouter(appController));
         }
@@ -193,7 +241,8 @@ public class MainActivity extends AppCompatActivity {
 
             String host = router.getHost();
             if (host.equals(selectedHost)) {
-                drawSelectedRow(rowBinding);
+                drawSelectedRowBackground(rowBinding);
+                drawCertName(router.getCertName());
             }
             rowBinding.rowTextHost.setText(host);
             rowBinding.rowTextLogin.setText(router.getUser());
@@ -211,7 +260,7 @@ public class MainActivity extends AppCompatActivity {
             binding.rowLoginScroll.setBackgroundResource(R.drawable.router_field_bg);
             binding.rowNoteScroll.setBackgroundResource(R.drawable.router_field_bg);
         }
-        drawSelectedRow(selectedRow);
+        drawSelectedRowBackground(selectedRow);
         String host = selectedRow.rowTextHost.getText().toString();
         selectedHost = host;
         MikrotikRouter router = routersMap.get(host);
@@ -220,11 +269,12 @@ public class MainActivity extends AppCompatActivity {
             mBinding.editLogin.setText(router.getUser());
             mBinding.editPassword.setText(router.getPass());
             mBinding.editRouterNote.setText(router.getNote());
+            drawCertName(router.getCertName());
         }
 
     }
 
-    private void drawSelectedRow(RouterRowBinding selectedRow) {
+    private void drawSelectedRowBackground(RouterRowBinding selectedRow) {
         selectedRow.rowHostScroll.setBackgroundResource(R.drawable.router_field_select_bg);
         selectedRow.rowLoginScroll.setBackgroundResource(R.drawable.router_field_select_bg);
         selectedRow.rowNoteScroll.setBackgroundResource(R.drawable.router_field_select_bg);
@@ -249,6 +299,49 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean isLocalHost(String host) {
         return host.equals("localhost") || host.equals("127.0.0.1");
+    }
+
+    private void setAddCertBtn() {
+        mBinding.addCertBtn.setOnClickListener(view -> {
+            if (!selectedHost.isEmpty() && MikrotikRouter.isRestApiHost(selectedHost)) {
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2
+                        && ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    requestAskReadFilePermit.launch(Manifest.permission.READ_EXTERNAL_STORAGE);
+                    return;
+                }
+                requestGeneralPermitURI.launch(getIntentActionOpenDoc());
+            } else {
+                drawCertName(appController.getString(R.string.choose_router));
+            }
+        });
+    }
+
+    private void setDelCertBtn() {
+        mBinding.delCertBtn.setOnClickListener(v -> {
+            if (!selectedHost.isEmpty() && MikrotikRouter.isRestApiHost(selectedHost)) {
+                MikrotikRouter router = routersMap.get(selectedHost);
+                if (router != null) {
+                    appController.removeCertFromRouter(router);
+                    drawCertName(AppController.EMPTY_STRING);
+                }
+            } else {
+                drawCertName(appController.getString(R.string.choose_router));
+            }
+        });
+    }
+
+    private void drawCertName(String certName) {
+        mBinding.certNameText.setText(certName);
+    }
+
+    private Intent getIntentActionOpenDoc() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.setType("*/*");
+        String[] mimeTypes = {"application/x-x509-ca-cert", "application/pkix-cert", "application/x-pem-file"};
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        return intent;
     }
 
 }

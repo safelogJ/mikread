@@ -63,6 +63,8 @@ public class MikrotikRouter {
     private String note = AppController.EMPTY_STRING;
     private String model = AppController.EMPTY_STRING;
     private String credential = AppController.EMPTY_STRING;
+    private String certName = AppController.EMPTY_STRING;
+    private byte[] certBytes;
     private long startTime;
     private int delResultCode;
 
@@ -74,6 +76,10 @@ public class MikrotikRouter {
         localRouter.setPass(host);
         localRouter.setNote(host);
         return localRouter;
+    }
+
+    public static boolean isRestApiHost(@NonNull String host) {
+        return host.matches(REST_API_PORT_PATTERN);
     }
 
     public MikrotikRouter(AppController appController) {
@@ -98,6 +104,22 @@ public class MikrotikRouter {
 
     public String getHost() {
         return host;
+    }
+    @Nullable
+    public byte[] getCertBytes() {
+        return certBytes;
+    }
+
+    public void setCertBytes(@Nullable byte[] certBytes) {
+        this.certBytes = certBytes;
+    }
+
+    public String getCertName() {
+        return certName;
+    }
+
+    public void setCertName(String certName) {
+        this.certName = certName;
     }
 
     public void setHost(String host) {
@@ -133,12 +155,8 @@ public class MikrotikRouter {
         return errorText;
     }
 
-    public boolean isRestApiHost() {
-        return host.matches(REST_API_PORT_PATTERN);
-    }
-
     public void readSmsFromRouter() {
-        if (isRestApiHost()) {
+        if (isRestApiHost(host)) {
             connectRestApi();
         } else {
             connectApi();
@@ -146,7 +164,7 @@ public class MikrotikRouter {
     }
 
     public void removeSmsFromRouter(MotherSms motherSms) {
-        if (isRestApiHost()) {
+        if (isRestApiHost(host)) {
             removeMotherSmsByDateRestApi(motherSms);
         } else {
             removeMotherSmsByDateApi(motherSms);
@@ -364,6 +382,7 @@ public class MikrotikRouter {
 
     private void connectRestApi() {
         OkHttpClient client = appController.getOkHttpClient();
+
         if (client == null) {
             sendInfoMessageToActivity(appController.getString(R.string.okhttp_error));
             return;

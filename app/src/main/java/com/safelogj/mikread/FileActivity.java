@@ -176,8 +176,9 @@ public class FileActivity extends AppCompatActivity {
         intent.setType("text/plain");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION |
-                Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
-                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+                Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+           // | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+        );
         return intent;
     }
 

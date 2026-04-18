@@ -6,12 +6,12 @@ plugins {
 
 configure<ApplicationExtension> {
     namespace = "com.safelogj.mikread"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.safelogj.mikread"
         minSdk = 23
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 16
         versionName = "192.168.88.16"
 

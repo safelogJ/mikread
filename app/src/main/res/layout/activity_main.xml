@@ -346,7 +346,7 @@
                     android:contentDescription="@string/routers_table"
                     android:fillViewport="true"
                     android:scrollbars="vertical"
-                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintBottom_toTopOf="@+id/certNameScroll"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@+id/linearLayoutTableTitle">
@@ -357,6 +357,65 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical" />
                 </ScrollView>
+
+                <TextView
+                    android:id="@+id/delCertBtn"
+                    android:layout_width="40dp"
+                    android:layout_height="0dp"
+                    android:layout_marginStart="1dp"
+                    android:background="@drawable/btn_del_file"
+                    android:clickable="true"
+                    android:contentDescription="@string/del_cert_btn"
+                    android:focusable="true"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="6dp"
+                    android:textColor="@color/black"
+                    android:textSize="20sp"
+                    app:layout_constraintBottom_toBottomOf="@+id/addCertBtn"
+                    app:layout_constraintStart_toStartOf="@+id/routerScroll"
+                    app:layout_constraintTop_toTopOf="@+id/addCertBtn" />
+
+                <TextView
+                    android:id="@+id/addCertBtn"
+                    android:layout_width="40dp"
+                    android:layout_height="38dp"
+                    android:layout_marginEnd="1dp"
+                    android:background="@drawable/btn_add_cert"
+                    android:clickable="true"
+                    android:contentDescription="@string/add_cert_btn"
+                    android:focusable="true"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="6dp"
+                    android:textColor="@color/black"
+                    android:textSize="20sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="@+id/routerScroll" />
+
+
+                <HorizontalScrollView
+                    android:id="@+id/certNameScroll"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_marginStart="1dp"
+                    android:layout_marginEnd="1dp"
+                    android:background="@drawable/btn_winbox"
+                    android:fillViewport="true"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:scrollbars="none"
+                    app:layout_constraintBottom_toBottomOf="@+id/addCertBtn"
+                    app:layout_constraintEnd_toStartOf="@+id/addCertBtn"
+                    app:layout_constraintStart_toEndOf="@+id/delCertBtn"
+                    app:layout_constraintTop_toTopOf="@+id/addCertBtn">
+
+                    <TextView
+                        android:id="@+id/certNameText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:gravity="center_vertical|end"
+                        android:textColor="@color/black"
+                        android:textSize="20sp" />
+                </HorizontalScrollView>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>

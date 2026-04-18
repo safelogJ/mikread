@@ -23,6 +23,7 @@ import com.safelogj.mikread.sms.Sms;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -33,11 +34,17 @@ import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyStore;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SignatureException;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -65,6 +72,7 @@ public class AppController extends Application {
     public static final int HOST_COMPARATOR = 0;
     public static final int USER_COMPARATOR = 1;
     public static final int NOTE_COMPARATOR = 2;
+    private static final char[] HEX_ARRAY = "0123456789abcdef".toCharArray();
     private static final String ROUTERS = "routers";
     private static final String ROUTERS_JSON = "routers.txt";
     private static final String ROUTERS_LIST = "routersList";
@@ -72,6 +80,8 @@ public class AppController extends Application {
     private static final String ROUTER_USER = "routerUser";
     private static final String ROUTER_PASS = "routerPass";
     private static final String ROUTER_NOTE = "routerNote";
+    private static final String ROUTER_CERT = "routerCert";
+    private static final String ROUTER_CERT_NAME = "routerCertName";
     private static final String CURRENT_ROUTER = "currentRouter";
     private static final String KEY_ALIAS = "MikrotikRouterKeyAlias";
     private static final String ANDROID_KEYSTORE = "AndroidKeyStore";
@@ -99,6 +109,7 @@ public class AppController extends Application {
     private WeakReference<Activity> currentActivityRef;
     private MikrotikRouter connectedRouter = new MikrotikRouter(this);
     private Cipher mCipher;
+    private MessageDigest mMessageDigest;
     private OkHttpClient okHttpClient;
 
 
@@ -108,6 +119,26 @@ public class AppController extends Application {
         regActivityListener();
         readRoutersListAndSettingsEncrypted();
         initOkHttpClient();
+    }
+
+    public void addCertToRouter(byte[] certBytes, String host, String certName) {
+        MikrotikRouter router = routersMap.get(host);
+        if (router != null) {
+            router.setCertBytes(certBytes);
+            router.setCertName(certName);
+            executor.execute(()-> okHttpClient.connectionPool().evictAll());
+            writeSettingsToFile();
+            Log.d(LOG_TAG, "Сертификат " + certName + " сохранён в роутер = " + host);
+        }
+
+    }
+
+    public void removeCertFromRouter(@NonNull MikrotikRouter router) {
+        router.setCertBytes(null);
+        router.setCertName(EMPTY_STRING);
+        executor.execute(()-> okHttpClient.connectionPool().evictAll());
+        writeSettingsToFile();
+        Log.d(LOG_TAG, "Сертификат удалён в роутере = " + router.getHost());
     }
 
     public Map<String, MikrotikRouter> getRoutersMap() {
@@ -246,6 +277,7 @@ public class AppController extends Application {
 
         return result;
     }
+
     @NonNull
     private Sms parseJsonSms(@NonNull String line) {
         if (line.isEmpty()) {
@@ -284,6 +316,10 @@ public class AppController extends Application {
         routerJson.put(ROUTER_PASS, pass != null ? pass : EMPTY_STRING);
         String note = router.getNote();
         routerJson.put(ROUTER_NOTE, note != null ? note : EMPTY_STRING);
+        String certName = router.getCertName();
+        routerJson.put(ROUTER_CERT_NAME, certName != null ? certName : EMPTY_STRING);
+        byte[] certBytes = router.getCertBytes();
+        routerJson.put(ROUTER_CERT, certBytes != null ? Base64.encodeToString(certBytes, Base64.NO_WRAP) : EMPTY_STRING);
     }
 
     private void readRouterJson(JSONObject routerJson, MikrotikRouter router) {
@@ -291,10 +327,14 @@ public class AppController extends Application {
         String user = routerJson.optString(ROUTER_USER, EMPTY_STRING);
         String pass = routerJson.optString(ROUTER_PASS, EMPTY_STRING);
         String note = routerJson.optString(ROUTER_NOTE, EMPTY_STRING);
+        String certName = routerJson.optString(ROUTER_CERT_NAME, EMPTY_STRING);
+        String encodedCert = routerJson.optString(ROUTER_CERT, EMPTY_STRING);
         router.setHost(host);
         router.setUser(user);
         router.setPass(pass);
         router.setNote(note);
+        router.setCertName(certName);
+        router.setCertBytes(encodedCert.isEmpty() ? null : Base64.decode(encodedCert, Base64.NO_WRAP));
     }
 
     private void regActivityListener() {
@@ -520,10 +560,57 @@ public class AppController extends Application {
 
                         @Override
                         public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-
-                            for (X509Certificate cert : chain) {
-                                cert.checkValidity(); // Выкинет, если дата сертификата истекла
+                            Date now = new Date();
+                            // 1. Проверяем, не наступило ли еще время действия (редко, но бывает при сбитых часах)
+                            if (now.before(chain[0].getNotBefore())) {
+                                throw new CertificateException(getString(R.string.date_cert_before_error));
                             }
+                            // 2. Проверяем, не истек ли срок (самая частая ошибка)
+                            if (now.after(chain[0].getNotAfter())) {
+                                throw new CertificateException(getString(R.string.date_cert_after_error) + " (" + chain[0].getNotAfter() + ")");
+                            }
+                            byte[] savedCertBytes = null;
+                            MikrotikRouter router = routersMap.get(connectedRouter.getHost());
+                            if (router != null) {
+                                savedCertBytes = router.getCertBytes();
+                            }
+                            if (savedCertBytes == null) {
+                                Log.w(AppController.LOG_TAG, "имя сертификата = : " + connectedRouter.getCertName() + " host = " + connectedRouter.getHost());
+                                Log.w(AppController.LOG_TAG, "сертификат не импортирован проверена только дата: ");
+                                return; // Если сертификат не задан, доверяем дате
+                            }
+
+                            try {
+                                // 2. Восстанавливаем объект сертификата из байтов в JSON
+                                CertificateFactory cf = CertificateFactory.getInstance("X.509");
+                                X509Certificate savedCert = (X509Certificate) cf.generateCertificate(
+                                        new ByteArrayInputStream(savedCertBytes)
+                                );
+
+                                // 3. СРАВНЕНИЕ ПУБЛИЧНЫХ КЛЮЧЕЙ (Самый важный этап)
+                                // Мы сравниваем структуру ключа, а не просто строку.
+                                // Это защищает от любых манипуляций с метаданными сертификата.
+                                if (!chain[0].getPublicKey().equals(savedCert.getPublicKey())) {
+                                    throw new CertificateException(getString(R.string.public_key_cert_error));
+                                } else {
+                                    Log.i(AppController.LOG_TAG, "сертификат публичный ключ совпал: ");
+                                }
+                                // 4. ПРОВЕРКА ПОДПИСИ (Verify)
+                                // Мы проверяем, что пришедший сертификат подписан тем же ключом,
+                                // который содержится в нашем эталонном сертификате.
+                                try {
+                                    chain[0].verify(savedCert.getPublicKey());
+                                } catch (Exception e) {
+                                    throw new CertificateException(getString(R.string.sign_cert_error));
+                                }
+                                Log.i(AppController.LOG_TAG, "сертификат подпись проверена");
+
+
+                            } catch (Exception e) {
+                                // Если что-то не совпало — рубим соединение
+                                throw new CertificateException("Критическая ошибка безопасности: подмена сертификата!", e);
+                            }
+
                         }
 
                         @Override
@@ -551,6 +638,31 @@ public class AppController extends Application {
         } catch (Exception e) {
             Log.d(LOG_TAG, "Ошибка создания : OkHttpClient" + e.getMessage());
         }
+    }
+
+    @NonNull
+    private String getFingerprint(X509Certificate cert) {
+        try {
+            if (mMessageDigest == null) {
+                mMessageDigest = MessageDigest.getInstance("SHA-256");
+            }
+            mMessageDigest.reset();
+            byte[] digest = mMessageDigest.digest(cert.getEncoded());
+            return bytesToHex(digest);
+        } catch (Exception e) {
+            return AppController.EMPTY_STRING;
+        }
+    }
+
+    @NonNull
+    private String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 
 }
