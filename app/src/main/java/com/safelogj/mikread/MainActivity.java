@@ -340,7 +340,6 @@ public class MainActivity extends AppCompatActivity {
         String[] mimeTypes = {"application/x-x509-ca-cert", "application/pkix-cert", "application/x-pem-file"};
         intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         return intent;
     }
 

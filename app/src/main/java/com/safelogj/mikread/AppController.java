@@ -32,12 +32,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyStore;
-import java.security.MessageDigest;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.SignatureException;
+import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -53,8 +54,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.net.ssl.SSLContext;
@@ -72,7 +76,6 @@ public class AppController extends Application {
     public static final int HOST_COMPARATOR = 0;
     public static final int USER_COMPARATOR = 1;
     public static final int NOTE_COMPARATOR = 2;
-    private static final char[] HEX_ARRAY = "0123456789abcdef".toCharArray();
     private static final String ROUTERS = "routers";
     private static final String ROUTERS_JSON = "routers.txt";
     private static final String ROUTERS_LIST = "routersList";
@@ -109,7 +112,6 @@ public class AppController extends Application {
     private WeakReference<Activity> currentActivityRef;
     private MikrotikRouter connectedRouter = new MikrotikRouter(this);
     private Cipher mCipher;
-    private MessageDigest mMessageDigest;
     private OkHttpClient okHttpClient;
 
 
@@ -419,8 +421,7 @@ public class AppController extends Application {
                 file.write(fileWrapper.toString(4));
             }
 
-        } catch (
-                Exception e) { // Ловим Exception, т.к. Keystore/Cipher может бросить разные исключения
+        } catch (Exception e) {
             Log.d(LOG_TAG, "Error writing encrypted JSON file or key management failure: ", e);
         }
     }
@@ -474,13 +475,14 @@ public class AppController extends Application {
             JSONObject currentRouterJson = rootJson.getJSONObject(CURRENT_ROUTER);
             readRouterJson(currentRouterJson, currentRouter); // Использует открытый пароль из JSON
 
-        } catch (
-                Exception e) { // Ловим Exception, т.к. Keystore/Cipher может бросить разные исключения
+        } catch (Exception e) {
             Log.d(LOG_TAG, "Error reading or decrypting full JSON data:  ", e);
         }
     }
 
-    private SecretKey getOrCreateSecretKey() throws Exception {
+    private SecretKey getOrCreateSecretKey() throws KeyStoreException, IllegalArgumentException, IOException, NoSuchAlgorithmException,
+            CertificateException, NullPointerException, UnrecoverableEntryException, NoSuchProviderException, InvalidAlgorithmParameterException {
+
         KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
         keyStore.load(null);
 
@@ -503,11 +505,14 @@ public class AppController extends Application {
                 .build());
 
         return keyGenerator.generateKey();
-
     }
 
 
-    private byte[] encrypt(byte[] dataBytes) throws Exception {
+    private byte[] encrypt(byte[] dataBytes) throws KeyStoreException, IllegalArgumentException, IOException, NoSuchAlgorithmException,
+            CertificateException, NullPointerException, UnrecoverableEntryException, NoSuchProviderException, InvalidAlgorithmParameterException,
+            NoSuchPaddingException, UnsupportedOperationException, InvalidKeyException, IllegalBlockSizeException, IllegalStateException,
+            BadPaddingException {
+
         SecretKey secretKey = getOrCreateSecretKey();
         if (mCipher == null) {
             mCipher = Cipher.getInstance(TRANSFORMATION);
@@ -523,7 +528,11 @@ public class AppController extends Application {
         return combined;
     }
 
-    private byte[] decrypt(byte[] combinedBytes) throws Exception {
+    private byte[] decrypt(byte[] combinedBytes) throws KeyStoreException, IllegalArgumentException, IOException, NoSuchAlgorithmException,
+            CertificateException, NullPointerException, UnrecoverableEntryException, NoSuchProviderException, InvalidAlgorithmParameterException,
+            NoSuchPaddingException, UnsupportedOperationException, InvalidKeyException, IllegalBlockSizeException, IllegalStateException,
+            BadPaddingException {
+
         // Минимальная длина: 1 байт (длина IV) + 1 байт (IV) + 16 байт (GCM Tag) = 18 байт
         if (combinedBytes.length < 1 + GCM_TAG_LENGTH) {
             throw new InvalidKeyException("Combined data too short to contain IV length and GCM Tag.");
@@ -554,18 +563,16 @@ public class AppController extends Application {
                     new X509TrustManager() {
 
                         @Override
-                        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                        public void checkClientTrusted(X509Certificate[] chain, String authType) {
                             //
                         }
 
                         @Override
                         public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
                             Date now = new Date();
-                            // 1. Проверяем, не наступило ли еще время действия (редко, но бывает при сбитых часах)
                             if (now.before(chain[0].getNotBefore())) {
                                 throw new CertificateException(getString(R.string.date_cert_before_error));
                             }
-                            // 2. Проверяем, не истек ли срок (самая частая ошибка)
                             if (now.after(chain[0].getNotAfter())) {
                                 throw new CertificateException(getString(R.string.date_cert_after_error) + " (" + chain[0].getNotAfter() + ")");
                             }
@@ -575,7 +582,6 @@ public class AppController extends Application {
                                 savedCertBytes = router.getCertBytes();
                             }
                             if (savedCertBytes == null) {
-                                Log.w(AppController.LOG_TAG, "имя сертификата = : " + connectedRouter.getCertName() + " host = " + connectedRouter.getHost());
                                 Log.w(AppController.LOG_TAG, "сертификат не импортирован проверена только дата: ");
                                 return; // Если сертификат не задан, доверяем дате
                             }
@@ -586,43 +592,41 @@ public class AppController extends Application {
                                 X509Certificate savedCert = (X509Certificate) cf.generateCertificate(
                                         new ByteArrayInputStream(savedCertBytes)
                                 );
-
-                                // 3. СРАВНЕНИЕ ПУБЛИЧНЫХ КЛЮЧЕЙ (Самый важный этап)
-                                // Мы сравниваем структуру ключа, а не просто строку.
-                                // Это защищает от любых манипуляций с метаданными сертификата.
+                                // 3. СРАВНЕНИЕ ПУБЛИЧНЫХ КЛЮЧЕЙ.
                                 if (!chain[0].getPublicKey().equals(savedCert.getPublicKey())) {
                                     throw new CertificateException(getString(R.string.public_key_cert_error));
                                 } else {
                                     Log.i(AppController.LOG_TAG, "сертификат публичный ключ совпал: ");
                                 }
-                                // 4. ПРОВЕРКА ПОДПИСИ (Verify)
-                                // Мы проверяем, что пришедший сертификат подписан тем же ключом,
-                                // который содержится в нашем эталонном сертификате.
-                                try {
-                                    chain[0].verify(savedCert.getPublicKey());
-                                } catch (Exception e) {
-                                    throw new CertificateException(getString(R.string.sign_cert_error));
-                                }
-                                Log.i(AppController.LOG_TAG, "сертификат подпись проверена");
-
-
-                            } catch (Exception e) {
-                                // Если что-то не совпало — рубим соединение
-                                throw new CertificateException("Критическая ошибка безопасности: подмена сертификата!", e);
+                                // 4. ПРОВЕРКА ПОДПИСИ (Verify).
+                                checkSign(chain[0], savedCert);
                             }
-
+                            catch (CertificateException e) {
+                                throw  e;
+                            }
+                            catch (Exception e) {
+                                throw new CertificateException(getString(R.string.main_cert_error), e);
+                            }
                         }
 
                         @Override
                         public X509Certificate[] getAcceptedIssuers() {
                             return new X509Certificate[0];
                         }
+
+                        private void checkSign(X509Certificate chain, X509Certificate savedCert) throws CertificateException {
+                            try {
+                                chain.verify(savedCert.getPublicKey());
+                            } catch (Exception e) {
+                                throw new CertificateException(getString(R.string.sign_cert_error), e);
+                            }
+                            Log.i(AppController.LOG_TAG, "сертификат подпись проверена");
+                        }
                     }
             };
 
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-
 
             okHttpClient = new OkHttpClient.Builder()
                     .sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustAllCerts[0])
@@ -632,37 +636,10 @@ public class AppController extends Application {
                     .readTimeout(60, TimeUnit.SECONDS)    // Время на ожидание ответа от роутера
                     .callTimeout(70, TimeUnit.SECONDS) // Общее время на весь запрос с ответом, чтоб не переподключалось много раз
                     .retryOnConnectionFailure(true)
-                    // .addInterceptor(new LoggingInterceptor())
-                    // .cookieJar(new RouterCookieJar())
                     .build();
         } catch (Exception e) {
             Log.d(LOG_TAG, "Ошибка создания : OkHttpClient" + e.getMessage());
         }
-    }
-
-    @NonNull
-    private String getFingerprint(X509Certificate cert) {
-        try {
-            if (mMessageDigest == null) {
-                mMessageDigest = MessageDigest.getInstance("SHA-256");
-            }
-            mMessageDigest.reset();
-            byte[] digest = mMessageDigest.digest(cert.getEncoded());
-            return bytesToHex(digest);
-        } catch (Exception e) {
-            return AppController.EMPTY_STRING;
-        }
-    }
-
-    @NonNull
-    private String bytesToHex(byte[] bytes) {
-        char[] hexChars = new char[bytes.length * 2];
-        for (int j = 0; j < bytes.length; j++) {
-            int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
-            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
-        }
-        return new String(hexChars);
     }
 
 }

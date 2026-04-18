@@ -48,13 +48,6 @@ public class FileActivity extends AppCompatActivity {
         if (result.getResultCode() == RESULT_OK && result.getData() != null) {
             Uri uri = result.getData().getData();
             if (uri != null) {
-                final int takeFlags = (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                try {
-                    getContentResolver().takePersistableUriPermission(uri, takeFlags);
-                    Log.d(AppController.LOG_TAG, "Разрешение на URI сохранено: " + uri);
-                } catch (SecurityException e) {
-                    Log.d(AppController.LOG_TAG, "Ошибка получения разрешений на URI: " + e.getMessage(), e);
-                }
                 DocumentFile documentFile = DocumentFile.fromSingleUri(FileActivity.this, uri);
                 if (!documentFile.exists()) {
                     Log.d(AppController.LOG_TAG, "Файл не найден или путь неверен!");
@@ -138,7 +131,7 @@ public class FileActivity extends AppCompatActivity {
         drawFileSmsDecodedList();
     }
 
-    //    onPause()
+//    onPause()
 //    onStop()
 
     @Override
@@ -175,10 +168,6 @@ public class FileActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("text/plain");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION |
-                Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-           // | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
-        );
         return intent;
     }
 
