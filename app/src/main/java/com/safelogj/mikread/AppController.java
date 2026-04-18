@@ -589,9 +589,7 @@ public class AppController extends Application {
                             try {
                                 // 2. Восстанавливаем объект сертификата из байтов в JSON
                                 CertificateFactory cf = CertificateFactory.getInstance("X.509");
-                                X509Certificate savedCert = (X509Certificate) cf.generateCertificate(
-                                        new ByteArrayInputStream(savedCertBytes)
-                                );
+                                X509Certificate savedCert = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(savedCertBytes));
                                 // 3. СРАВНЕНИЕ ПУБЛИЧНЫХ КЛЮЧЕЙ.
                                 if (!chain[0].getPublicKey().equals(savedCert.getPublicKey())) {
                                     throw new CertificateException(getString(R.string.public_key_cert_error));
