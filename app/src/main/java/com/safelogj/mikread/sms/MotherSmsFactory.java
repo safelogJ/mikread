@@ -37,7 +37,10 @@ public class MotherSmsFactory {
             boolean addedToExistingGroup = false;
             for (MotherSms mother : mothersList) {
                 long delta = Math.abs(timeMillis - mother.getGroupTimestamp());
-                if (delta <= TIME_WINDOW_MS && smsSource.equals(mother.getSource()) && smsPhone.equals(mother.getPhone())) {
+                if (sms.getUdh() != -1 // не одиночное
+                        && delta <= TIME_WINDOW_MS // +- 7 секунд
+                        && smsSource.equals(mother.getSource()) // совпал модем
+                        && smsPhone.equals(mother.getPhone())) { // совпал отправитель
                     mother.addPart(sms);
                     addedToExistingGroup = true;
                     break;
@@ -124,10 +127,8 @@ public class MotherSmsFactory {
 
     private static long parseTimeToMillis(String timeString) {
         String processedString = getParsibleString(timeString);
-
         // Формат с "Z" в конце шаблона требует смещения в виде "+HHMM"
         SimpleDateFormat sdf = new SimpleDateFormat(TIME_FORMAT_PATTERN, Locale.US);
-
         try {
             Date date = sdf.parse(processedString);
             if (date != null) {
@@ -136,21 +137,18 @@ public class MotherSmsFactory {
         } catch (ParseException e) {
             //
         }
-
         return 0L;
     }
 
     @NonNull
     private static String getParsibleString(String timeString) {
         String processedString = timeString;
-
         // 1. Обработка смещения: SimpleDateFormat (в API 21) не поддерживает двоеточие в "+HH:MM" (нужно "+HHMM")
         Matcher matcher = COLON_OFFSET_PATTERN.matcher(timeString);
         if (matcher.find()) {
             // Превращаем "+03:00" → "+0300"
             processedString = matcher.replaceFirst("$1$2");
         }
-
         // 2. Обработка "Z" (индикатор UTC): SimpleDateFormat ожидает "+0000"
         if (processedString.endsWith("Z")) {
             // Превращаем "Z" → "+0000"

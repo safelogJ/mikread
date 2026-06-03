@@ -11,6 +11,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.EditText;
 
 import androidx.activity.EdgeToEdge;
@@ -18,6 +21,7 @@ import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.content.ContextCompat;
@@ -80,11 +84,23 @@ public class MainActivity extends AppCompatActivity {
     private MikrotikRouter currentRouter;
     private Map<String, MikrotikRouter> routersMap;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         mBinding = ActivityMainBinding.inflate(getLayoutInflater());
+
+        getWindow().setFlags(
+                WindowManager.LayoutParams.FLAG_SECURE,
+                WindowManager.LayoutParams.FLAG_SECURE
+        );
+        mBinding.linearLayout.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        mBinding.linearLayout.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);} // Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+        initAccessibilityDelegate();
+        initSecurityMeasures();
+
         setContentView(mBinding.getRoot());
         ViewCompat.setOnApplyWindowInsetsListener(mBinding.getRoot(), (v, insets) -> {
             Insets systemInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -310,7 +326,7 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
                 requestGeneralPermitURI.launch(getIntentActionOpenDoc());
-            } else {
+            } else if (!selectedHost.isEmpty()){
                 drawCertName(appController.getString(R.string.choose_router));
             }
         });
@@ -324,7 +340,7 @@ public class MainActivity extends AppCompatActivity {
                     appController.removeCertFromRouter(router);
                     drawCertName(AppController.EMPTY_STRING);
                 }
-            } else {
+            } else if (!selectedHost.isEmpty()) {
                 drawCertName(appController.getString(R.string.choose_router));
             }
         });
@@ -337,10 +353,85 @@ public class MainActivity extends AppCompatActivity {
     private Intent getIntentActionOpenDoc() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("*/*");
-        String[] mimeTypes = {"application/x-x509-ca-cert", "application/pkix-cert", "application/x-pem-file"};
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/x-x509-ca-cert", "application/pkix-cert", "application/x-pem-file"});
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         return intent;
+    }
+
+    private void initAccessibilityDelegate() {
+        View.AccessibilityDelegate scrubbingDelegate = new View.AccessibilityDelegate() {
+            @Override
+            public void sendAccessibilityEventUnchecked(@NonNull View host, @NonNull AccessibilityEvent event) {
+                scrubEvent(event);
+                super.sendAccessibilityEventUnchecked(host, event);
+            }
+
+            @Override
+            public void onInitializeAccessibilityEvent(@NonNull View host, @NonNull AccessibilityEvent event) {
+                super.onInitializeAccessibilityEvent(host, event);
+                scrubEvent(event);
+            }
+
+            @Override
+            public void onInitializeAccessibilityNodeInfo(@NonNull View host, @NonNull AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                scrubNode(info);
+            }
+
+            @Override
+            public boolean performAccessibilityAction(@NonNull View host, int action, Bundle args) {
+                // Запрещаем сервисам доступности кликать или вводить текст за пользователя
+                return false;
+            }
+        };
+        mBinding.editRouterHost.setAccessibilityDelegate(scrubbingDelegate);
+        mBinding.editLogin.setAccessibilityDelegate(scrubbingDelegate);
+        mBinding.editPassword.setAccessibilityDelegate(scrubbingDelegate);
+    }
+
+    // 1. Метод для очистки события (удаляем текст и описания)
+    private void scrubEvent(AccessibilityEvent event) {
+        event.getText().clear();
+        event.setContentDescription(null);
+    }
+
+    // 2. Метод для обнуления информации об узле (удаляем всё: от текста до ID)
+    private void scrubNode(AccessibilityNodeInfo info) {
+        info.setText(null);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            info.setHintText(null);
+        }
+        info.setContentDescription(null);
+        info.setViewIdResourceName(null); // Скрываем ID поля, чтобы нельзя было понять, что это за поле
+        info.setClassName(View.class.getName()); // Притворяемся обычным View
+
+        // Делаем элемент "невидимым" для действий сервиса
+        info.setClickable(false);
+        info.setFocusable(false);
+        info.getExtras().clear(); // Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
+
+    }
+
+    private void initSecurityMeasures() {
+        applySecurityMeasures(mBinding.editRouterHost);
+        applySecurityMeasures(mBinding.editLogin);
+        applySecurityMeasures(mBinding.editPassword);
+    }
+
+    // Создаем метод для комплексной пометки поля как "секретного"
+    private void applySecurityMeasures(View view) {
+        // 1. Блокируем нажатия, если экран чем-то перекрыт
+        view.setFilterTouchesWhenObscured(true);
+
+        // 2. Для новых версий Android (14+) включаем системную метку чувствительных данных
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            view.setAccessibilityDataSensitive(View.ACCESSIBILITY_DATA_SENSITIVE_YES);
+        }
+        // 3. Убираем подсказки автозаполнения на уровне самого поля
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            view.setAutofillHints(AppController.EMPTY_STRING); // Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+        }
+
     }
 
 }
