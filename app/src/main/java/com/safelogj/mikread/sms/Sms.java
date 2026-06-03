@@ -18,6 +18,7 @@ public class Sms {
     public static final String TYPE_KEY = "type";
     public static final String MODEL_KEY = "model";
     public static final String DETAIL_KEY = "detail";
+    public static final int SINGLE_MESSAGE_UDH = -1;
     private static final String GSM_ALPHABET = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ\u001BÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
     private final String phone;
     private final String timestamp;
@@ -26,7 +27,7 @@ public class Sms {
     private String pdu;
     private String type;
     private String decodeMessage = AppController.EMPTY_STRING;
-    private int udh = -1;
+    private int udh = SINGLE_MESSAGE_UDH;
 
     public static Sms empty() {
         return new Sms(null, null, null, null, null, null);
@@ -125,7 +126,7 @@ public class Sms {
         int udl = data[index++] & 0xFF;
 
         // По умолчанию считаем, что UDH нет
-        udh = -1; // Сброс номера части (по умолчанию -1, если сообщение одиночное)
+        udh = SINGLE_MESSAGE_UDH; // Сброс номера части (по умолчанию -1, если сообщение одиночное)
         int shift = 0;
 
         // 8. User Data Header (если есть)

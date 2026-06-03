@@ -37,7 +37,7 @@ public class MotherSmsFactory {
             boolean addedToExistingGroup = false;
             for (MotherSms mother : mothersList) {
                 long delta = Math.abs(timeMillis - mother.getGroupTimestamp());
-                if (sms.getUdh() != -1 // не одиночное
+                if (sms.getUdh() != Sms.SINGLE_MESSAGE_UDH // не одиночное
                         && delta <= TIME_WINDOW_MS // +- 7 секунд
                         && smsSource.equals(mother.getSource()) // совпал модем
                         && smsPhone.equals(mother.getPhone())) { // совпал отправитель
