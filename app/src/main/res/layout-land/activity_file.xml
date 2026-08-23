@@ -39,6 +39,7 @@
                 android:layout_marginTop="8dp"
                 android:layout_marginEnd="8dp"
                 android:background="@color/winbox_blue"
+                android:focusable="true"
                 android:fillViewport="true"
                 android:paddingStart="8dp"
                 android:paddingEnd="8dp"
@@ -51,6 +52,7 @@
                     android:id="@+id/hostText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:importantForAccessibility="no"
                     android:gravity="center_vertical|end"
                     android:paddingHorizontal="16dp"
                     android:paddingVertical="6dp"
@@ -113,6 +115,7 @@
                     android:id="@+id/fileSmsErrorText"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
+                    android:accessibilityLiveRegion="polite"
                     android:gravity="center_vertical|end"
                     android:textColor="@color/black"
                     android:textSize="20sp" />

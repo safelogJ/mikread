@@ -6,6 +6,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.method.LinkMovementMethod;
 import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -70,6 +72,7 @@ public class SmsActivity extends AppCompatActivity {
         appController = (AppController) getApplication();
         connectedRouter = appController.getConnectedRouter();
         mBinding.smsBtnDel.setOnClickListener(view -> removeSms());
+        initButtonAccessibility();
     }
 
     public void drawError(String errorString) {
@@ -144,6 +147,7 @@ public class SmsActivity extends AppCompatActivity {
 
             smsBinding.smsText.setText(bidiFormatter.unicodeWrap(message));
             smsBinding.smsText.setMovementMethod(LinkMovementMethod.getInstance());
+            smsBinding.smsText.setContentDescription(getString(R.string.sms_row_description, message));
             mBinding.smsTable.addView(smsBinding.getRoot());
         }
         NoticeRowBinding noticeRowBinding = NoticeRowBinding.inflate(getLayoutInflater(), mBinding.smsTable, false);
@@ -193,7 +197,7 @@ public class SmsActivity extends AppCompatActivity {
         if (deletedTextView == null || text.isEmpty() || erasingTime <= 0) {
             return;
         }
-
+        deletedTextView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         final TextView textView = deletedTextView;
         if (deletedTextView.getTag() instanceof MotherSms motherSms) {
             motherSms.setDeleting(true);
@@ -249,8 +253,20 @@ public class SmsActivity extends AppCompatActivity {
         if (model.isEmpty()) {
             mBinding.routerModel.setText(AppController.EMPTY_STRING);
         } else {
-            mBinding.routerModel.setText(note.isEmpty() ? model : note + ": " + model);
+            String text = note.isEmpty() ? model : note + ": " + model;
+            mBinding.routerModel.setText(text);
+            mBinding.routerModelScroll.setContentDescription(text);
         }
     }
 
+    private void initButtonAccessibility() {
+        View.AccessibilityDelegate buttonDelegate = new View.AccessibilityDelegate() {
+            @Override
+            public void onInitializeAccessibilityNodeInfo(@NonNull View host, @NonNull AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName(Button.class.getName());
+            }
+        };
+        mBinding.smsBtnDel.setAccessibilityDelegate(buttonDelegate);
+    }
 }

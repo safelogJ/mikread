@@ -42,7 +42,6 @@
                 android:id="@+id/linearLayout"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:importantForAccessibility="noHideDescendants"
                 android:filterTouchesWhenObscured="true"
                 android:orientation="vertical"
                 android:paddingStart="16dp"
@@ -80,6 +79,7 @@
                         android:hint="@string/default_ip"
                         android:inputType="textUri"
                         android:padding="8dp"
+                        android:importantForAccessibility="noHideDescendants"
                         android:textColor="@color/winbox_text_main"
                         android:textColorHint="@color/winbox_text_hint" />
                 </LinearLayout>
@@ -112,6 +112,7 @@
                         android:hint="@string/default_login"
                         android:inputType="textPersonName"
                         android:padding="8dp"
+                        android:importantForAccessibility="noHideDescendants"
                         android:textColor="@color/winbox_text_main"
                         android:textColorHint="@color/winbox_text_hint" />
                 </LinearLayout>
@@ -144,6 +145,7 @@
                         android:hint="@string/default_password"
                         android:inputType="textPassword"
                         android:padding="8dp"
+                        android:importantForAccessibility="noHideDescendants"
                         android:drawableEnd="@drawable/visibility_off_20px"
                         android:textColor="@color/winbox_text_main"
                         android:textColorHint="@color/winbox_text_hint" />
@@ -236,6 +238,7 @@
                 android:layout_marginTop="16dp"
                 android:background="@drawable/btn_del_winbox"
                 android:clickable="true"
+                android:contentDescription="@string/del_router"
                 android:focusable="true"
                 android:paddingHorizontal="16dp"
                 android:paddingVertical="6dp"
@@ -264,6 +267,7 @@
                     android:id="@+id/errorText"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
+                    android:accessibilityLiveRegion="polite"
                     android:gravity="center_vertical|end"
                     android:textColor="@color/black"
                     android:textSize="16sp" />
@@ -306,6 +310,7 @@
                         android:layout_weight="1"
                         android:background="@drawable/router_title_bg"
                         android:clickable="true"
+                        android:contentDescription="@string/sort_routers_by_address"
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:paddingHorizontal="8dp"
@@ -323,6 +328,7 @@
                         android:layout_weight="1"
                         android:background="@drawable/router_title_bg"
                         android:clickable="true"
+                        android:contentDescription="@string/sort_routers_by_user"
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:paddingHorizontal="8dp"
@@ -339,6 +345,7 @@
                         android:layout_weight="1"
                         android:background="@drawable/router_title_bg"
                         android:clickable="true"
+                        android:contentDescription="@string/sort_routers_by_note"
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:paddingHorizontal="8dp"
@@ -422,6 +429,7 @@
                         android:id="@+id/certNameText"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
+                        android:accessibilityLiveRegion="polite"
                         android:gravity="center_vertical|end"
                         android:textColor="@color/black"
                         android:textSize="20sp" />

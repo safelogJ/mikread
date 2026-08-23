@@ -368,7 +368,8 @@ public class MikrotikRouter {
             if (MotherSmsFactory.isSameTimestamp(smsFind.get(Sms.TIMESTAMP_KEY), motherSms.getGroupTimestamp())
                     && motherSms.getSource().equals(smsFind.get(Sms.SOURCE_KEY))
                     && motherSms.getPhone().equals(smsFind.get(Sms.PHONE_KEY))
-                    && motherSms.isMessageContains(smsFind.get(Sms.MESSAGE_KEY))) {
+                  //  && motherSms.isMessageContains(smsFind.get(Sms.MESSAGE_KEY))
+                    && motherSms.isPduContains(smsFind.get(Sms.PDU_KEY))) {
                 if (indices.length() != 0) {
                     indices.append(",");
                 }
@@ -558,7 +559,8 @@ public class MikrotikRouter {
                     if (MotherSmsFactory.isSameTimestamp(smsFind.getString(Sms.TIMESTAMP_KEY), motherSms.getGroupTimestamp())
                             && motherSms.getSource().equals(smsFind.getString(Sms.SOURCE_KEY))
                             && motherSms.getPhone().equals(smsFind.getString(Sms.PHONE_KEY))
-                            && motherSms.isMessageContains(smsFind.getString(Sms.MESSAGE_KEY))) {
+                           // && motherSms.isMessageContains(smsFind.getString(Sms.MESSAGE_KEY))
+                            && motherSms.isPduContains(smsFind.getString(Sms.PDU_KEY))) {
                         if (indices.length() != 0) {
                             indices.append(",");
                         }

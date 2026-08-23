@@ -1,7 +1,6 @@
 package com.safelogj.mikread.helpers;
 
 import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.text.method.HideReturnsTransformationMethod;
 import android.text.method.PasswordTransformationMethod;
 import android.view.MotionEvent;

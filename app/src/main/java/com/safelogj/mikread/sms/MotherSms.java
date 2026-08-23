@@ -64,9 +64,9 @@ public class MotherSms {
         this.stringTimestamp = stringTimestamp;
     }
 
-    public boolean isMessageContains(String message) {
+    public boolean isPduContains(String pdu) {
         for (Sms sms : parts) {
-            if (sms.getMessage().equals(message)) {
+            if (sms.getPdu().equals(pdu)) {
                 return true;
             }
         }

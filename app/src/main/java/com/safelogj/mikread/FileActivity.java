@@ -10,6 +10,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
+import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.Button;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResult;
@@ -102,9 +105,11 @@ public class FileActivity extends AppCompatActivity {
             String host = intent.getStringExtra(AppController.LOCALHOST_KEY);
             if (host != null) {
                 mBinding.hostText.setText(host);
+                mBinding.hostScroll.setContentDescription(host);
             }
         }
         uriViewModel = new ViewModelProvider(this).get(UriViewModel.class);
+        initButtonAccessibility();
     }
 
     public void reDrawSmsList() {
@@ -202,5 +207,17 @@ public class FileActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    private void initButtonAccessibility() {
+        View.AccessibilityDelegate buttonDelegate = new View.AccessibilityDelegate() {
+            @Override
+            public void onInitializeAccessibilityNodeInfo(@NonNull View host, @NonNull AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName(Button.class.getName());
+            }
+        };
+        mBinding.delFileSmsBtn.setAccessibilityDelegate(buttonDelegate);
+        mBinding.fileSmsBtn.setAccessibilityDelegate(buttonDelegate);
     }
 }

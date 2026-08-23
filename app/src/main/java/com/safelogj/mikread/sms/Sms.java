@@ -56,7 +56,6 @@ public class Sms {
         return decodeMessage;
     }
 
-
     public int getUdh() {
         return udh;
     }
@@ -74,6 +73,11 @@ public class Sms {
     @NonNull
     public String getSource() {
         return source;
+    }
+
+    @NonNull
+    public String getPdu() {
+        return pdu;
     }
 
     public void decodePduToText() {

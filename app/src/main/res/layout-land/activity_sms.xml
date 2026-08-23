@@ -43,6 +43,7 @@
                 android:paddingStart="8dp"
                 android:paddingEnd="8dp"
                 android:scrollbars="none"
+                android:focusable="true"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
@@ -51,6 +52,7 @@
                     android:id="@+id/router_model"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:importantForAccessibility="no"
                     android:gravity="center_vertical|end"
                     android:paddingHorizontal="16dp"
                     android:paddingVertical="6dp"
@@ -96,6 +98,7 @@
                     android:id="@+id/sms_errorText"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
+                    android:accessibilityLiveRegion="polite"
                     android:gravity="center_vertical|end"
                     android:textColor="@color/black"
                     android:textSize="20sp" />

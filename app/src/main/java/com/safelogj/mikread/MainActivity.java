@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.Button;
 import android.widget.EditText;
 
 import androidx.activity.EdgeToEdge;
@@ -131,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
         mBinding.titleTextLogin.setOnClickListener(view -> sortRouterTable(AppController.USER_COMPARATOR));
         mBinding.titleTextNote.setOnClickListener(view -> sortRouterTable(AppController.NOTE_COMPARATOR));
         mBinding.editPassword.setOnTouchListener(new PassFieldListener());
+        initButtonAccessibility();
     }
 
     public void drawError(String errorString) {
@@ -264,6 +266,9 @@ public class MainActivity extends AppCompatActivity {
             rowBinding.rowTextLogin.setText(router.getUser());
             rowBinding.rowTextNote.setText(router.getNote());
             mBinding.routerTable.addView(rowBinding.getRoot());
+
+            rowBinding.LinearRow.setContentDescription(getString(R.string.router_row_description, router.getHost(), router.getUser(), router.getNote()));
+            rowBinding.LinearRow.setFocusable(true);
         }
     }
 
@@ -434,4 +439,22 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void initButtonAccessibility() {
+        View.AccessibilityDelegate buttonDelegate = new View.AccessibilityDelegate() {
+            @Override
+            public void onInitializeAccessibilityNodeInfo(@NonNull View host, @NonNull AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName(Button.class.getName());
+            }
+        };
+
+        mBinding.btnAddSet.setAccessibilityDelegate(buttonDelegate);
+        mBinding.btnConnect.setAccessibilityDelegate(buttonDelegate);
+        mBinding.btnDel.setAccessibilityDelegate(buttonDelegate);
+        mBinding.addCertBtn.setAccessibilityDelegate(buttonDelegate);
+        mBinding.delCertBtn.setAccessibilityDelegate(buttonDelegate);
+        mBinding.titleTextHost.setAccessibilityDelegate(buttonDelegate);
+        mBinding.titleTextLogin.setAccessibilityDelegate(buttonDelegate);
+        mBinding.titleTextNote.setAccessibilityDelegate(buttonDelegate);
+    }
 }

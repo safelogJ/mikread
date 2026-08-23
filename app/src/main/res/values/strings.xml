@@ -13,8 +13,9 @@
     <string name="removal_step">removing… step</string>
     <string name="original_btn">Original</string>
     <string name="decoded_btn">Decoded</string>
-    <string name="del_btn">Del</string>
-    <string name="open_btn">Open</string>
+    <string name="del_btn">Delete SMS file</string>
+    <string name="del_router">Delete router</string>
+    <string name="open_btn">Open SMS file</string>
     <string name="add_cert_btn">Add certificate</string>
     <string name="del_cert_btn">Delete certificate</string>
     <string name="address_field">Address</string>
@@ -24,7 +25,12 @@
     <string name="note_field2">Note:</string>
     <string name="routers_table">Routers table</string>
     <string name="sms_table">Sms table</string>
-    <string name="sms_row">Sms Row</string>
+    <string name="router_row_description">Router: %1$s, User: %2$s, Note: %3$s</string>
+    <string name="sms_row_description">Sms: %1$s</string>
+    <string name="del_router_btn_description">Delete selected router</string>
+    <string name="sort_routers_by_address">Sort routers by address</string>
+    <string name="sort_routers_by_user">Sort routers by user</string>
+    <string name="sort_routers_by_note">Sort routers by note</string>
     <string name="inbox_empty">no readable sms found</string>
     <string name="sms_remove_error">failed to remove sms</string>
     <string name="file_remove_error">failed to remove file</string>

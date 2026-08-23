@@ -12,7 +12,6 @@
     android:clickable="true"
     android:focusable="true"
     android:linksClickable="true"
-    android:contentDescription="@string/sms_row"
     android:paddingHorizontal="8dp"
     android:textColor="@color/winbox_text_title_color"
     android:textColorLink="@color/winbox_blue"
